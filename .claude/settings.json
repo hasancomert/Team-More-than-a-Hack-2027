@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(/data/**)",
+      "Read(/cache/**)",
+      "Read(/submissions/**)",
+      "Read(//**/*.parquet)",
+      "Read(//**/*.mp4)",
+      "Read(//**/BAR-ATH_tactical_*)",
+      "Read(//**/BAR-ATH_broadcast_*)",
+      "Edit(/evaluation/**)",
+      "Edit(/games.py)"
+    ]
+  }
+}

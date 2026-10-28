@@ -1,3 +1,14 @@
+> **Team SAHA's working repository.** It holds the official challenge repository (full
+> history, unchanged files) plus our code in `saha/`. Start with [TEAM.md](TEAM.md) for the plan,
+> owners and setup, and [CLAUDE.md](CLAUDE.md) for the rules, for humans and Claude Code alike.
+>
+> ```bash
+> python -m saha.pipeline --data <path-to-data-bundle>   # -> submissions/SAHA.csv, validated
+> ```
+>
+> Submission SHA256: *recorded here at submission time.* Everything below this box is the
+> organisers' README, unchanged.
+
 # More than a Hack 2027 — Phase 1: Ball Possession
 
 **Organised by [Metrica Sports](https://metrica-sports.com), [FC Barcelona](https://www.fcbarcelona.com)
