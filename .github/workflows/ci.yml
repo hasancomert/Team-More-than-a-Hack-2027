@@ -1,0 +1,48 @@
+# Checks every pull request and every push to main. Synthetic data only: the match data never
+# reaches GitHub (CLAUDE.md, rule 3).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # the guard scans every commit of the pull request
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install pinned dependencies
+        run: python -m pip install -r requirements.txt -r requirements-saha.txt
+
+      - name: Guard (no data, no frame-level files, scorer untouched)
+        run: |
+          python -m saha.tools.guard --all
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python -m saha.tools.guard --range "origin/${{ github.base_ref }}..HEAD"
+          fi
+
+      - name: Experiment records
+        run: python -m saha.common.experiments check
+
+      - name: Tests
+        run: python -m pytest -q
+
+      - name: Official scorer on the shipped baselines
+        run: python evaluation/run_evaluation.py --no-detail --out "$RUNNER_TEMP"
+
+      - name: docs/METRIC_NOTES.md matches the scorer
+        run: |
+          python -m saha.tools.metric_behaviour --out "$RUNNER_TEMP/METRIC_NOTES.md"
+          diff "$RUNNER_TEMP/METRIC_NOTES.md" docs/METRIC_NOTES.md
