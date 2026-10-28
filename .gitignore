@@ -62,3 +62,37 @@ __pycache__/
 venv/
 env/
 .DS_Store
+
+# -- SAHA team additions (the upstream block above stays untouched) ------------------------------
+# The match data and anything derived from it frame by frame never enters git, Drive, chats or an
+# LLM session (CLAUDE.md). saha.tools.guard enforces the same rules at commit and push time.
+cache/
+submissions/
+*.parquet
+*.feather
+*.arrow
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.joblib
+*.h5
+*.hdf5
+*.mov
+*.avi
+*.mkv
+*.zip
+*.7z
+*.tar
+*.tgz
+*.gz
+*.bz2
+*.xz
+BAR-ATH_tactical_*
+BAR-ATH_broadcast_*
+
+# tooling
+.pytest_cache/
+*.egg-info/
+.ipynb_checkpoints/
+.claude/settings.local.json
