@@ -353,17 +353,13 @@ def _fast_block(lines, spec):
     separators = spec.separators
     if any(len(s) != 1 for s in separators):
         return None
-    table = bytes.maketrans(b"".join(s.encode("ascii") for s in separators),
-                            b"," * len(separators))
-    blob = b"\n".join(lines).translate(table)
-
     # The C parser pads a short line with NaN instead of failing, so count values per line first:
     # a line missing its ball group must not silently become a line without a ball.
-    buffer = np.frombuffer(blob, dtype=np.uint8)
-    ends = np.append(np.flatnonzero(buffer == ord("\n")), len(buffer))
-    commas = np.searchsorted(np.flatnonzero(buffer == ord(",")), ends)
-    if not np.all(np.diff(np.concatenate(([0], commas))) == len(fields) - 1):
+    encoded = [s.encode("ascii") for s in separators]
+    if any(sum(line.count(s) for s in encoded) != len(fields) - 1 for line in lines):
         return None
+    table = bytes.maketrans(b"".join(encoded), b"," * len(encoded))
+    blob = b"\n".join(lines).translate(table)
     try:
         frame = pd.read_csv(io.BytesIO(blob), header=None, sep=",", dtype=np.float64,
                             na_values=list(MISSING_TOKENS), keep_default_na=False,

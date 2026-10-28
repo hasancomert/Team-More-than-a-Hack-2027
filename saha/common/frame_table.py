@@ -106,7 +106,8 @@ def build(data=None, out=None):
     if px is None or py is None:
         raise epts.EptsError("the data spec declares no player x/y channels")
     speed = place(_pick(raw.players, meta, "s"))
-    if speed is None:
+    has_speed = speed is not None
+    if not has_speed:
         speed = np.full(px.shape, np.nan, dtype=np.float32)
 
     team_by_player = {p.player_id: p.team_id for p in meta.players}
@@ -156,6 +157,7 @@ def build(data=None, out=None):
             for spec in meta.specs),
         "ball_channels": sorted(raw.ball),
         "player_channels": sorted(raw.players),
+        "has_speed": has_speed,
     }
 
     table = pa.table(columns)
@@ -274,7 +276,9 @@ def summary(table):
         "slots  {} ({} home, {} away)  data-spec order == <Player> order: {}".format(
             table.n_slots, int((table.slot_team == HOME).sum()),
             int((table.slot_team == AWAY).sum()), info["spec_order_matches_metadata"]),
-        "channels  ball {}  players {}".format(info["ball_channels"], info["player_channels"]),
+        "channels  ball {}  players {}  speed {}".format(
+            info["ball_channels"], info["player_channels"],
+            "found" if info["has_speed"] else "MISSING (speeds are NaN)"),
         "ball visible  {:.1f}% of all frames, {:.1f}% of graded frames".format(
             100.0 * table.ball_visible.mean(), 100.0 * table.ball_visible[graded].mean()),
         "tracked slots per graded frame  mean {:.1f}  (home {:.1f}, away {:.1f})".format(
