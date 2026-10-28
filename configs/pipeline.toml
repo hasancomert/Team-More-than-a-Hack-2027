@@ -1,0 +1,40 @@
+# The submission configuration: which evidence the combiner reads, and how.
+#
+#   python -m saha.pipeline                                  # uses this file
+#   python -m saha.pipeline --config configs/<experiment>.toml
+#
+# Changing this file changes the submission. Every change needs an experiments/ record, and the
+# final version is frozen in FINAL_CHOICE.md with its commit hash (TEAM.md, 12 November).
+
+[combine]
+# Placeholders from Phase 0. WS1 sets them on WS5's external validation data, never on the
+# public 5 minutes (CLAUDE.md).
+eps = 0.01
+prior_dead = 0.0
+cost_switch = 35.0
+cost_to_dead = 35.0
+cost_from_dead = 35.0
+
+# One block per evidence file. `module` is run as `python -m <module>` and must write
+# cache/evidence/<name>.parquet. `scale` multiplies that source's log-odds (0 switches it off
+# without removing it).
+
+[[evidence]]
+name = "nearest"        # WS1: the official nearest-player baseline, as evidence
+module = "saha.nearest.build"
+scale = 1.0
+
+[[evidence]]
+name = "deadball"       # WS2
+module = "saha.deadball.build"
+scale = 1.0
+
+[[evidence]]
+name = "visible"        # WS3
+module = "saha.visible.build"
+scale = 1.0
+
+[[evidence]]
+name = "occluded"       # WS4
+module = "saha.occluded.build"
+scale = 1.0
