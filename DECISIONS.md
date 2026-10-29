@@ -49,3 +49,8 @@ come here (CLAUDE.md).
   the model are the published graded-half boundaries, and they are used only to write X outside
   the halves. Everything else must come from an algorithm, including the pre-kick-off D in the
   second half (110808–113741).
+
+## 2026-10-29
+
+- **D010 Team size.** We are five: one owner per work package, and WS1 is the team leader. The
+  four-person fallback is dropped from TEAM.md.

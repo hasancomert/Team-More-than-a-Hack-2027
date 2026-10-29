@@ -174,15 +174,6 @@ The ball is missing on **41% of graded frames**.
 - Labelled data is scarce: 7,500 frames and 17 possessions. Rule-based and probabilistic models
   come first. Supervised models only with WS5 data.
 
-### If we are four instead of five
-
-The default: WS5 joins WS1 with a reduced scope, one external dataset (Metrica game 3, since
-`saha.common.epts` already reads it).
-
-A more balanced alternative: give reduced WS5 to the WS3 owner. WS3 is the heaviest user of
-labelled possession changes, and its first version (nearest player plus control) is the
-lightest. WS1 then keeps its focus on the combiner and integration.
-
 ## Calendar
 
 | when | what |
