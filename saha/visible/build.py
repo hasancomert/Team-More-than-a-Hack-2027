@@ -5,7 +5,8 @@
 STUB written by WS1 in Phase 0: a valid file that has no opinion anywhere (all NaN, weight 0), so
 the pipeline runs this package from day one. The owner replaces build() and keeps the interface:
 
-    p_home on frames where the ball is visible (and close to them); p_dead stays NaN.
+    p_home only on frames where the ball is tracked (frame_table ball_visible); NaN and
+    weight 0 elsewhere. p_dead stays NaN. Boundaries: TEAM.md.
 
 Starting ideas (TEAM.md, not binding):
     nearest player + a control condition (ball near one player for several frames, low ball

@@ -61,6 +61,27 @@ three things:
 
 "Success" is never measured on the public 5 minutes alone (CLAUDE.md, rule 2).
 
+### Boundaries between packages
+
+Every frame gets at most one opinion per question, so that no signal is counted twice and the
+pieces fit together without negotiation:
+
+| question | frames | package |
+|---|---|---|
+| `p_dead`: is the ball dead? | every frame | WS2 `deadball` |
+| `p_home` while the ball is tracked | frames where `ball_visible` is true | WS3 `visible` |
+| `p_home` while the ball is missing | frames where `ball_visible` is false, short gaps included | WS4 `occluded` |
+| `p_home` from a restart's team | inside a restart window only (optional) | WS2 `deadball` |
+
+- **Read anything, write only on your own frames.** WS4 may use the last and next ball sightings,
+  and WS3 may look at the frames around a sighting. But the opinion is written only on your own
+  frames: `p_home` NaN and weight 0 everywhere else.
+- Everyone splits the frames with the same mask: `frame_table.load().ball_visible`.
+- `nearest` (WS1) answers WS3's question as the baseline. Once WS3 beats it on WS5's validation
+  data, WS1 lowers or zeroes its scale in `configs/pipeline.toml`, with an experiment record.
+- The pipeline warns when `visible` and `occluded` both give `p_home` on the same frame.
+- Moving a boundary is a team decision (DECISIONS.md).
+
 ### WS1: infrastructure and integration (owner: _team leader_)
 
 - **Goal.** One reproducible pipeline that turns everyone's evidence into the best submission.
@@ -90,8 +111,8 @@ three things:
     - the frame table: ball position and visibility, player positions and speeds
     - Smart Tagging restarts
     - optionally, the homography
-- **Output.** `cache/evidence/deadball.parquet`: `p_dead`. Add `p_home` only around a restart
-  whose team you know.
+- **Output.** `cache/evidence/deadball.parquet`: `p_dead`. Add `p_home` only inside a restart
+  window whose team you know (see the boundaries above).
 - **First delivery.** Ball outside the pitch, plus Smart Tagging restart windows, as `p_dead`.
 - **Success.**
     - Good alive/dead F1 and restart timing on WS5 data that has ball status.
@@ -111,7 +132,8 @@ three things:
 - **Goal.** `p_home` on frames where the ball is visible, and the exact frame where possession
   changes.
 - **Inputs.** The frame table: ball and player positions and speeds.
-- **Output.** `cache/evidence/visible.parquet`: `p_home`.
+- **Output.** `cache/evidence/visible.parquet`: `p_home`, only on frames where the ball is
+  tracked (see the boundaries above).
 - **First delivery.** The nearest player plus a control condition, as `p_home` with a weight
   that grows with confidence.
 - **Success.**
@@ -131,7 +153,8 @@ The ball is missing on **41% of graded frames**.
 - **Inputs.**
     - the frame table: team shapes, speeds, the last and next ball sightings
     - Smart Tagging phases and their teams
-- **Output.** `cache/evidence/occluded.parquet`: `p_home`.
+- **Output.** `cache/evidence/occluded.parquet`: `p_home`, only on frames where the ball is
+  missing, short gaps included (see the boundaries above).
 - **First delivery.** Interpolate the ball across short gaps. Add the Smart Tagging phase team
   as weak evidence.
 - **Success.**

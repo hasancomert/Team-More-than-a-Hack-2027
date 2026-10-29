@@ -124,6 +124,18 @@ def stats(p_dead, p_home, weight):
     }
 
 
+def home_overlap(first, second):
+    """Graded frames on which both Evidence objects give a p_home opinion.
+
+    WS3 (visible) and WS4 (occluded) split the frames by ball visibility (TEAM.md, boundaries);
+    anything above zero means one signal may be counted twice.
+    """
+    graded = alignment.graded_mask(len(first.weight))
+    both = (np.isfinite(first.p_home) & (first.weight > 0) &
+            np.isfinite(second.p_home) & (second.weight > 0))
+    return int((both & graded).sum())
+
+
 def _git_commit():
     try:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=paths.REPO_ROOT,

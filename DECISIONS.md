@@ -54,3 +54,10 @@ come here (CLAUDE.md).
 
 - **D010 Team size.** We are five: one owner per work package, and WS1 is the team leader. The
   four-person fallback is dropped from TEAM.md.
+- **D011 Package boundaries.** Each frame gets at most one opinion per question:
+    - WS2 owns `p_dead`, plus an optional `p_home` inside restart windows only.
+    - WS3 writes `p_home` only where the ball is tracked (`ball_visible`).
+    - WS4 writes `p_home` only where the ball is missing, short gaps included.
+    - Packages read anything but write only on their own frames.
+    - The pipeline warns about `visible`/`occluded` overlap.
+  Details: TEAM.md, "Boundaries between packages".

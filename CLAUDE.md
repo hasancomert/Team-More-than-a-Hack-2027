@@ -117,6 +117,8 @@ exactly 199,319 rows and exactly these columns:
   quantises them to 1e-4.
 - Check every file with `python -m saha.common.evidence`.
 - The builder is `saha/<package>/build.py`, run with `python -m saha.<package>.build`.
+- Boundaries (TEAM.md): WS2 owns `p_dead`. WS3 writes `p_home` only where the ball is tracked,
+  and WS4 only where it is missing. Read anything, but write only on your own frames.
 - The combiner (`saha/combine`) fuses log-odds in integers and runs a Viterbi pass over H/A/D.
 - Changing the interface is a team decision, recorded in DECISIONS.md.
 

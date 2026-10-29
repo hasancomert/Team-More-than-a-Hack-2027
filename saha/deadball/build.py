@@ -5,7 +5,8 @@
 STUB written by WS1 in Phase 0: a valid file that has no opinion anywhere (all NaN, weight 0), so
 the pipeline runs this package from day one. The owner replaces build() and keeps the interface:
 
-    p_dead on every frame you can judge; p_home stays NaN unless you know the restart's team.
+    p_dead on every frame you can judge; p_home only inside a restart window whose team
+    you know. Boundaries: TEAM.md.
 
 Starting ideas (TEAM.md, not binding):
     ball out of the pitch; ball unseen for long while players slow down; set-piece formations;

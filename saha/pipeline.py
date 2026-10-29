@@ -29,6 +29,8 @@ from saha.common import evidence, frame_table, paths, submission
 DEFAULT_CONFIG = paths.CONFIGS_DIR / "pipeline.toml"
 TEAM = "SAHA"
 PINNED = ("numpy", "pandas", "pyarrow", "scipy", "kloppy")
+# Evidence pairs that must not both give p_home on one frame (TEAM.md, boundaries).
+BOUNDARY_PAIRS = (("visible", "occluded"),)
 
 
 def load_config(path):
@@ -120,6 +122,14 @@ def main(argv=None):
         loaded = evidence.read_evidence(entry["name"])
         sources.append((loaded, float(entry.get("scale", 1.0))))
         hashes[entry["name"]] = loaded.content_hash()
+    by_name = {source.name: source for source, _ in sources}
+    for first, second in BOUNDARY_PAIRS:
+        if first in by_name and second in by_name:
+            shared = evidence.home_overlap(by_name[first], by_name[second])
+            if shared:
+                print("  WARNING: {} and {} both give p_home on {} graded frames; they should "
+                      "split the frames by ball visibility (TEAM.md, boundaries)".format(
+                          first, second, shared))
 
     print("[4/6] combine")
     codes = decode(sources, params)

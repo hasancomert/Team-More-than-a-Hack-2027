@@ -73,3 +73,18 @@ def test_files_written_by_hand_are_validated(tmp_path, monkeypatch):
     assert ok and "OK" in lines[0]
     assert evidence.main([]) == 1                   # three bad files among four
     assert evidence.main(["good"]) == 0
+
+
+def test_home_overlap_counts_shared_graded_frames():
+    def make(name, start, stop, weight=1.0):
+        p_dead, p_home, w = evidence.empty()
+        p_home[start:stop] = 0.7
+        w[start:stop] = weight
+        return evidence.Evidence(name, p_dead, p_home, w, {})
+
+    visible = make("visible", 11185, 11300)
+    occluded = make("occluded", 11290, 11400)
+    assert evidence.home_overlap(visible, occluded) == 10
+    assert evidence.home_overlap(visible, make("occluded", 11300, 11400)) == 0
+    assert evidence.home_overlap(visible, make("occluded", 11185, 11300, weight=0.0)) == 0
+    assert evidence.home_overlap(make("a", 0, 100), make("b", 0, 100)) == 0   # ungraded frames

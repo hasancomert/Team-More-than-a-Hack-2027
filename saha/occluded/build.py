@@ -5,7 +5,8 @@
 STUB written by WS1 in Phase 0: a valid file that has no opinion anywhere (all NaN, weight 0), so
 the pipeline runs this package from day one. The owner replaces build() and keeps the interface:
 
-    p_home on frames where the ball is not tracked; p_dead stays NaN.
+    p_home only on frames where the ball is not tracked (short gaps included); NaN and
+    weight 0 elsewhere. p_dead stays NaN. Boundaries: TEAM.md.
 
 Starting ideas (TEAM.md, not binding):
     interpolate the ball across short gaps; over long gaps use team shape (who attacks,
