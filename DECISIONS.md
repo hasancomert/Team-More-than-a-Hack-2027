@@ -69,3 +69,5 @@ come here (CLAUDE.md).
   mean speed is 2.3 in play and 1.2 when the ball is dead (docs/EDA.md); in km/h those would be
   walking speeds. The frame table keeps the values as delivered and calls them m/s. WS1 confirms
   it with a displacement-based check in Phase 1.
+- **D013 Owners, so far.** WS1 Hasan (team leader), WS2 Alparslan. Baki takes WS3 or WS4. The
+  other of the two, and WS5, are still open; they are added here and in TEAM.md once decided.

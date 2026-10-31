@@ -84,7 +84,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Write the owners' names into TEAM.md.
+    - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
+      still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
 - **WS1:**
     - Load the ball's speed channel into the frame table.

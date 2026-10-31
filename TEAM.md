@@ -61,6 +61,14 @@ Every new shell: `cd` into the repository and activate the environment again
 
 ## Work packages
 
+| package | owner |
+|---|---|
+| WS1 infrastructure and integration | Hasan (team leader) |
+| WS2 dead ball | Alparslan |
+| WS3 possession while the ball is tracked | Baki or _TBD_ (Baki takes WS3 or WS4) |
+| WS4 possession while the ball is missing | Baki or _TBD_ |
+| WS5 external data and independent validation | _TBD_ |
+
 Each package writes one evidence file (interface in CLAUDE.md) from `saha/<package>/build.py`.
 The pipeline already runs every package: today they are stubs with no opinion, so your first PR
 only replaces `build()`.
@@ -98,7 +106,7 @@ pieces fit together without negotiation:
 - The pipeline warns when `visible` and `occluded` both give `p_home` on the same frame.
 - Moving a boundary is a team decision (DECISIONS.md).
 
-### WS1: infrastructure and integration (owner: _team leader_)
+### WS1: infrastructure and integration (owner: Hasan, team leader)
 
 - **Goal.** One reproducible pipeline that turns everyone's evidence into the best submission.
 - **Owns.** The shared data layer (`saha/common`), the evidence interface and validator, the
@@ -119,7 +127,7 @@ pieces fit together without negotiation:
     - Set switching costs so the result has few, long possessions.
     - Use X only in mid-possession.
 
-### WS2: dead ball (D) (owner: _TBD_)
+### WS2: dead ball (D) (owner: Alparslan)
 
 - **Goal.** `p_dead` on every graded frame. The exact start and end of every stoppage matter
   just as much (both boundaries shape the possessions around them).
@@ -150,7 +158,7 @@ pieces fit together without negotiation:
     - EDA: players' mean speed in the public window is 1.2 m/s when the ball is dead and 2.3 m/s
       in play.
 
-### WS3: possession while the ball is tracked (owner: _TBD_)
+### WS3: possession while the ball is tracked (owner: Baki or _TBD_)
 
 - **Goal.** `p_home` on frames where the ball is visible, and the exact frame where possession
   changes.
@@ -170,7 +178,7 @@ pieces fit together without negotiation:
     - EDA: the ball has its own speed channel in the raw data, which the frame table does not
       load yet (WS1 adds it). The ball has no height channel.
 
-### WS4: possession while the ball is missing (owner: _TBD_)
+### WS4: possession while the ball is missing (owner: Baki or _TBD_)
 
 The ball is missing on **41% of graded frames**.
 
