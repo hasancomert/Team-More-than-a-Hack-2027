@@ -67,7 +67,7 @@ def _source_info(path):
     return {"name": path.name, "bytes": path.stat().st_size, "sha256": sha256_of(path)}
 
 
-def _pick(arrays, meta, canonical):
+def pick_channel(arrays, meta, canonical):
     """The array for a canonical channel (x, y, z, s), or None."""
     ids, names = CHANNEL_ALIASES[canonical][:1], CHANNEL_ALIASES[canonical]
     for channel_id in ids:
@@ -98,14 +98,16 @@ def build(data=None, out=None):
         placed[video] = values
         return placed
 
-    ball_x, ball_y = place(_pick(raw.ball, meta, "x")), place(_pick(raw.ball, meta, "y"))
+    ball_x = place(pick_channel(raw.ball, meta, "x"))
+    ball_y = place(pick_channel(raw.ball, meta, "y"))
     if ball_x is None or ball_y is None:
         raise epts.EptsError("the data spec declares no ball x/y channels")
-    ball_z = place(_pick(raw.ball, meta, "z"))
-    px, py = place(_pick(raw.players, meta, "x")), place(_pick(raw.players, meta, "y"))
+    ball_z = place(pick_channel(raw.ball, meta, "z"))
+    px = place(pick_channel(raw.players, meta, "x"))
+    py = place(pick_channel(raw.players, meta, "y"))
     if px is None or py is None:
         raise epts.EptsError("the data spec declares no player x/y channels")
-    speed = place(_pick(raw.players, meta, "s"))
+    speed = place(pick_channel(raw.players, meta, "s"))
     has_speed = speed is not None
     if not has_speed:
         speed = np.full(px.shape, np.nan, dtype=np.float32)
@@ -142,6 +144,7 @@ def build(data=None, out=None):
         "n_frames": N_FRAMES,
         "sources": {"atd_meta": _source_info(meta_path), "atd_raw": _source_info(raw_path)},
         "parse_path": raw.path,
+        "lines_outside_spec": raw.outside_spec,
         "n_records": int(len(raw.frame_id)),
         "frame_id_range": [int(raw.frame_id.min()), int(raw.frame_id.max())],
         "contiguous": bool(np.array_equal(np.sort(raw.frame_id),
@@ -269,8 +272,9 @@ def summary(table):
     lines = [
         "frame table v{}  {} frames  parsed via the {} path".format(
             info["version"], table.n_frames, info["parse_path"]),
-        "ATD records {}  frame_id {}..{}  contiguous {}".format(
-            info["n_records"], *info["frame_id_range"], info["contiguous"]),
+        "ATD records {}  frame_id {}..{}  contiguous {}  outside the declared layout {}".format(
+            info["n_records"], *info["frame_id_range"], info["contiguous"],
+            info.get("lines_outside_spec", 0)),
         "teams  H = {}  A = {}  (home is the first <Team>: {})".format(
             info["teams"]["H"], info["teams"]["A"], info["home_is_first_team"]),
         "slots  {} ({} home, {} away)  data-spec order == <Player> order: {}".format(

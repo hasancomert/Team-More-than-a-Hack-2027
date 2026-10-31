@@ -144,8 +144,11 @@ def check_our_baseline(report, meta, table, results=RESULTS):
                          dtype=np.int8)
     codes64 = np.full(N_FRAMES, -1, dtype=np.int8)
     codes64[raw.frame_id - 1] = nearest_team(
-        np.stack([raw.ball["x"], raw.ball["y"]], axis=-1) * scale,
-        np.stack([raw.players["x"], raw.players["y"]], axis=-1) * scale, slot_team)
+        np.stack([frame_table.pick_channel(raw.ball, meta, "x"),
+                  frame_table.pick_channel(raw.ball, meta, "y")], axis=-1) * scale,
+        np.stack([frame_table.pick_channel(raw.players, meta, "x"),
+                  frame_table.pick_channel(raw.players, meta, "y")], axis=-1) * scale,
+        slot_team)
     codes32 = nearest_team(table.ball_xy_m(), table.players_xy_m(), table.slot_team)
 
     from saha.common import submission

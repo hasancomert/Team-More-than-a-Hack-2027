@@ -102,3 +102,28 @@ def test_short_line_is_an_error_that_does_not_leak_values(parsed, tmp_path):
     assert "line 8" in message
     assert not any(token in message for token in lines[7].replace(":", ",").split(",")
                    if len(token) > 3)
+
+
+def test_numbers_written_as_floats_in_the_metadata(small_match, tmp_path):
+    """The delivered metadata writes FrameRate as '25.0'."""
+    text = paths.asset_path("atd_meta", small_match.data_dir).read_text()
+    assert "<FrameRate>25.0</FrameRate>" in text
+    variant = tmp_path / "meta.xml"
+    variant.write_text(text.replace('startFrame="1"', 'startFrame="1.0"'))
+    meta = epts.read_metadata(variant)
+    assert meta.frame_rate == 25 and isinstance(meta.frame_rate, int)
+    assert meta.specs[0].start_frame == 1
+    variant.write_text(text.replace("<FrameRate>25.0</FrameRate>", "<FrameRate>fast</FrameRate>"))
+    with pytest.raises(epts.EptsError, match="FrameRate"):
+        epts.read_metadata(variant)
+
+
+def test_lines_beyond_the_declared_range_use_the_nearest_layout(parsed, tmp_path):
+    meta, meta_path, raw_path, full = parsed
+    last = int(full.frame_id.max())
+    variant = tmp_path / "short_spec.xml"
+    variant.write_text(meta_path.read_text().replace('endFrame="{}"'.format(last),
+                                                     'endFrame="{}"'.format(last - 10)))
+    short = epts.read_raw(raw_path, epts.read_metadata(variant))
+    assert short.outside_spec == 10 and full.outside_spec == 0
+    assert np.array_equal(short.players["x"], full.players["x"], equal_nan=True)

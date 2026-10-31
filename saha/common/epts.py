@@ -153,6 +153,20 @@ def _text(elem, name, default=None):
     return found.text.strip()
 
 
+def _number(text, what, whole=False):
+    """'25' or '25.0' -> 25 (an int when the value is whole). Errors name the field, never
+    the file's text. The delivered metadata writes FrameRate as '25.0'."""
+    try:
+        value = float(text)
+    except (TypeError, ValueError):
+        raise EptsError("{} in the metadata is not a number".format(what))
+    if value.is_integer():
+        return int(value)
+    if whole:
+        raise EptsError("{} in the metadata is not a whole number".format(what))
+    return value
+
+
 def _params(elem):
     """ProviderParameter name -> value, empty values dropped (as kloppy does)."""
     out = {}
@@ -255,14 +269,15 @@ def read_metadata(path):
                        for pc in _children(_child(meta, "PlayerChannels"), "PlayerChannel")}
 
     specs_elem = _child(root, "DataFormatSpecifications")
-    specs = [DataSpec(int(s.get("startFrame")), int(s.get("endFrame")),
+    specs = [DataSpec(_number(s.get("startFrame"), "startFrame", whole=True),
+                      _number(s.get("endFrame"), "endFrame", whole=True),
                       _register(s, player_channels, top_level=True))
              for s in _children(specs_elem, "DataFormatSpecification")]
     if not specs:
         raise EptsError("no DataFormatSpecification in the metadata")
 
     return EptsMetadata(
-        frame_rate=int(_text(config, "FrameRate", "0")),
+        frame_rate=_number(_text(config, "FrameRate", "0"), "FrameRate"),
         field_size=field_size,
         provider=_text(config, "ProviderName", ""),
         global_params=_params(_child(config, "ProviderGlobalParameters")),
@@ -324,6 +339,7 @@ class RawTracking:
     ball: dict              # channel id -> (n,) float64
     slot_player_ids: list   # metadata player id of each slot
     path: str               # "fast" or "exact"
+    outside_spec: int = 0   # lines whose frame counter no DataFormatSpecification declares
 
 
 def _read_lines(path):
@@ -420,9 +436,13 @@ def read_raw(raw_path, meta, force_exact=False):
     which = np.full(n, -1, dtype=np.int64)
     for index, spec in enumerate(meta.specs):
         which[(ids >= spec.start_frame) & (ids <= spec.end_frame) & (which < 0)] = index
-    if (which < 0).any():
-        raise EptsError("{} raw lines have a frame counter outside every DataFormatSpecification"
-                        .format(int((which < 0).sum())))
+    outside = which < 0
+    if outside.any():
+        # kloppy stops reading at the last declared frame. We read on with the nearest declared
+        # layout instead: a line that does not fit it still fails the value count below, loudly.
+        bounds = np.array([[s.start_frame, s.end_frame] for s in meta.specs])
+        distance = np.abs(ids[outside, None, None] - bounds[None]).min(axis=2)
+        which[outside] = np.argmin(distance, axis=1)
 
     used_path = "fast"
     for index, spec in enumerate(meta.specs):
@@ -448,4 +468,4 @@ def read_raw(raw_path, meta, force_exact=False):
             elif field.kind == "frame":
                 if not np.array_equal(values[:, column], ids[rows].astype(np.float64)):
                     raise EptsError("frame counter parsed inconsistently")
-    return RawTracking(ids, players, ball, slot_ids, used_path)
+    return RawTracking(ids, players, ball, slot_ids, used_path, int(outside.sum()))

@@ -106,7 +106,9 @@ def _tracks(rng, truth, n_frames, n_home, n_away, ball_drop):
 
 
 def _metadata_xml(n_home, n_away, n_frames):
-    """EPTS metadata with Metrica's structure: position sensor x/y/z, speed sensor s."""
+    """EPTS metadata with Metrica's structure: position sensor x/y/z, speed sensor s.
+
+    FrameRate is written as '25.0', as in the delivered file."""
     n_slots = n_home + n_away
     players, channels, groups = [], [], []
     for slot in range(n_slots):
@@ -147,7 +149,7 @@ def _metadata_xml(n_home, n_away, n_frames):
   <Metadata>
     <GlobalConfig>
       <ProviderName>Metrica Sports</ProviderName>
-      <FrameRate>{fps}</FrameRate>
+      <FrameRate>{fps:.1f}</FrameRate>
       <ProviderGlobalParameters>{params}</ProviderGlobalParameters>
     </GlobalConfig>
     <Sessions>

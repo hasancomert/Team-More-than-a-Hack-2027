@@ -118,8 +118,8 @@ def test_frame_table_detects_stale_cache(small_match, use_data, tmp_path):
     meta = paths.asset_path("atd_meta", small_match.data_dir)
     original = meta.read_text()
     try:
-        meta.write_text(original.replace("<FrameRate>25</FrameRate>",
-                                         "<FrameRate>25</FrameRate>   "))
+        meta.write_text(original.replace("<FrameRate>25.0</FrameRate>",
+                                         "<FrameRate>25.0</FrameRate>   "))
         ok, reason = frame_table.is_current()
         assert not ok and "changed" in reason
     finally:
