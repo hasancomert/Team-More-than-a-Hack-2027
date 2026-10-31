@@ -33,7 +33,7 @@ come here (CLAUDE.md).
     - Every change is a PR with at least one approval. `saha/common` changes need WS1's
       approval.
     - Hooks come from `python -m saha.tools.setup_dev`.
-- **D008 (proposed, leader to confirm) Data and LLMs.** FAQ.md and OVERVIEW.md quote a T&C
+- **D008 (accepted by the team leader, 2026-10-31) Data and LLMs.** FAQ.md and OVERVIEW.md quote a T&C
   clause: no making the competition data, or extracts of it, available to a third-party hosted
   or cloud LLM. So:
     - No match data or frame-level derivative ever reaches an LLM.
@@ -45,7 +45,7 @@ come here (CLAUDE.md).
       enabled in the shared file, because it restricts network and writes. Members may enable
       it in `.claude/settings.local.json`.
     - Data-dependent runs happen on members' own machines.
-- **D009 (proposed, leader to confirm) No game-specific constants.** The only frame numbers in
+- **D009 (accepted by the team leader, 2026-10-31) No game-specific constants.** The only frame numbers in
   the model are the published graded-half boundaries, and they are used only to write X outside
   the halves. Everything else must come from an algorithm, including the pre-kick-off D in the
   second half (110808–113741).
