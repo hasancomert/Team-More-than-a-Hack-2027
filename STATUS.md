@@ -89,13 +89,49 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
       still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
-- **WS2:** fold the event-driven dead-ball prototype on branch `ws2/event-deadball` into
-  `saha/deadball`. It was written before Phase 0 as a separate pipeline, so it needs to move to
-  Python 3.11, the shared frame table and the evidence interface. Its referee-whistle signal
-  reads the tactical video with ffmpeg, which needs a team decision first (D006).
+- **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
+  step-by-step list is in the next section.
 - **WS1:**
     - Load the ball's speed channel into the frame table.
     - Confirm the speed unit from player displacements (D012).
     - Stop the combiner from suppressing every possession shorter than 2 s. The placeholder
       costs do that today, and docs/METRIC_NOTES.md shows that short possessions are where the
       score is.
+
+## WS2: bringing `ws2/event-deadball` into the shared structure
+
+The branch holds a strong event-driven prototype: a dead-ball model, the referee's whistle,
+kick-off detection and an event-gated decoder. It was written before Phase 0, as a separate
+pipeline. Its ideas are worth keeping; its shape has to change before anything from it is merged.
+WS2 (with Claude Code, if you use it) works through this list:
+
+1. **Start from current `main`.** Merge `main` into the branch, or open a new branch from `main`
+   and port the code.
+2. **Python 3.11 with the team pins** (D014). If scikit-learn is needed, add it to
+   `requirements-saha.txt`, pinned, in the same PR.
+3. **One pipeline.** Read the match through `saha.common` (`frame_table.load()`,
+   `smart_tagging.load()`), not `possession/data.py`. Write the result from
+   `saha/deadball/build.py` through `write_evidence`:
+    - `p_dead` on every frame you can judge;
+    - `p_home` only inside restart windows (TEAM.md, boundaries).
+
+   Drop the second entry point (`run.py`) and the second decoder. The decoder ideas (event
+   gating, autocorrelation discounting) go into WS1's combiner, in a separate PR with WS1.
+4. **Agree with WS3/WS4 first.** The formation model and the ball-control signal answer WS3's
+   and WS4's questions. Agree with their owners before shipping them, and keep the TEAM.md
+   boundaries.
+5. **Two rule fixes, required before any merge** (RULES.md, CLAUDE.md rules 1–2, D009):
+    - The hard-hold versus soft-hold choice was made by comparing versions on the public
+      window and on restart times read off the video. Both are out: no hand labels on this
+      match for any purpose, validation included, and the public window never chooses between
+      two versions. Re-decide it by football reasoning, by the self-supervised test, or on
+      WS5's external data. Rewrite that part of the text to say how it was decided.
+    - The whistle frequency bands were measured by hand on this match's audio. Find the
+      whistle's two tones automatically, or take a generic whistle band from outside this
+      match, so that no constant comes from inspecting this game.
+6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
+   ffmpeg on every machine that reproduces the submission. Bring it to the team together with
+   a determinism check: the same whistle times on two machines. Until then, the rest must work
+   without it.
+7. **Move the documentation.** The text in `TECHNICAL.md` goes to `docs/tech/ws2_deadball.md`.
+   WS1 assembles `SAHA.md` from the package sections.
