@@ -1,0 +1,27 @@
+# SAHA team dependencies, pinned. Install on top of the two upstream files:
+#
+#   python -m pip install -r requirements.txt -r requirements-starter.txt -r requirements-saha.txt
+#
+# requirements.txt and requirements-starter.txt are upstream files and stay untouched (so upstream
+# updates merge cleanly). They leave numpy, pandas and matplotlib unpinned; the pins below are
+# what makes the submission reproducible to the byte on every member's machine. pip combines
+# "numpy" from requirements.txt with "numpy==X" from here and installs X.
+#
+# Every pin has wheels for CPython 3.11 on Windows (x86-64), macOS (arm64 and x86-64) and Linux.
+# Changing a pin is a team decision: write it to DECISIONS.md and re-run the reproduction check.
+
+# -- numeric stack (decides the submission bytes) ---------------------------------------------
+numpy==2.3.5
+pandas==2.3.3
+pyarrow==21.0.0
+scipy==1.16.3
+
+# -- already pinned upstream; repeated so `python -m saha.tools.setup_dev --check` sees it ------
+kloppy==3.18.0
+
+# -- plots for docs/ (EDA, metric notes) ------------------------------------------------------
+matplotlib==3.10.7
+
+# -- development ------------------------------------------------------------------------------
+pytest==8.4.2
+pre-commit==4.3.0

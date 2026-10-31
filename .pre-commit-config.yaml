@@ -1,0 +1,20 @@
+# Installed by `python -m saha.tools.setup_dev` (pre-commit, pre-merge-commit and pre-push).
+# Local hooks only: no network needed, nothing outside this repository runs.
+default_install_hook_types: [pre-commit, pre-merge-commit, pre-push]
+repos:
+  - repo: local
+    hooks:
+      - id: saha-guard
+        name: saha guard (no data, no frame-level files, no edits to the scorer)
+        entry: python -m saha.tools.guard
+        language: python
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit, pre-merge-commit]
+      - id: saha-guard-push
+        name: saha guard (no direct push to main; scan what is being pushed)
+        entry: python -m saha.tools.guard --pre-push
+        language: python
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

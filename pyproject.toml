@@ -1,0 +1,5 @@
+# Tool configuration only. SAHA is not installed: everything runs from the repository root as
+# `python -m ...` (CLAUDE.md), and the dependencies are pinned in requirements-saha.txt.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
