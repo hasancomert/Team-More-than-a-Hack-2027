@@ -1,7 +1,8 @@
 # CLAUDE.md: team SAHA, More than a Hack 2027 (Phase 1: ball possession)
 
 Every Claude Code session on this repository reads this first. The rules apply to humans too.
-Team plan and owners: TEAM.md. Decisions: DECISIONS.md. Metric details: docs/METRIC_NOTES.md.
+Team plan and owners: TEAM.md. Where we are now: STATUS.md. Decisions: DECISIONS.md.
+Metric details: docs/METRIC_NOTES.md. The data's main facts: docs/EDA.md.
 
 ## The task
 

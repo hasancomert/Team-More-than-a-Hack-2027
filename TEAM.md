@@ -20,19 +20,27 @@ How the metric punishes mistakes: [docs/METRIC_NOTES.md](docs/METRIC_NOTES.md).
 
 ## Setup
 
-Windows (PowerShell):
+Put the four tactical files, names unchanged, in a `tactical` folder inside a data folder of your
+choice, for example `D:\mtah2027\tactical\BAR-ATH_tactical_atd.txt`. `MTAH_DATA_DIR` points at
+the data folder (`D:\mtah2027`), not at `tactical`. The videos are not needed.
+
+Windows (PowerShell). Install Python 3.11 first if `py list` does not show it: run
+`py install 3.11`, or use the 3.11.9 installer from python.org.
 
 ```powershell
 git clone https://github.com/hasancomert/Team-More-than-a-Hack-2027.git
 cd Team-More-than-a-Hack-2027
 py -3.11 -m venv .venv
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force
 .venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt -r requirements-starter.txt -r requirements-saha.txt
-setx MTAH_DATA_DIR "D:\mtah2027"        # wherever you unpacked the data; open a new shell after
+$env:MTAH_DATA_DIR = "D:\mtah2027"      # this shell
+setx MTAH_DATA_DIR "D:\mtah2027"        # every future shell
 python -m saha.tools.setup_dev
 ```
 
-macOS / Linux:
+macOS / Linux. Install Python 3.11 first if `python3.11 --version` fails: use python.org, or
+`brew install python@3.11`.
 
 ```bash
 git clone https://github.com/hasancomert/Team-More-than-a-Hack-2027.git
@@ -40,11 +48,16 @@ cd Team-More-than-a-Hack-2027
 python3.11 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt -r requirements-starter.txt -r requirements-saha.txt
-export MTAH_DATA_DIR=~/mtah2027          # add it to ~/.zshrc or ~/.bashrc
+export MTAH_DATA_DIR=~/mtah2027          # add it to ~/.zshrc or ~/.bashrc too
 python -m saha.tools.setup_dev
 ```
 
-Then `python -m saha.pipeline` writes `submissions/SAHA.csv`, validates it and scores it.
+`python -m saha.tools.setup_dev` must print only OK lines. Then `python -m saha.pipeline` builds
+the frame table, writes `submissions/SAHA.csv`, validates it and scores it, in a few minutes.
+`python --version` inside the activated environment must say 3.11.
+
+Every new shell: `cd` into the repository and activate the environment again
+(`.venv\Scripts\Activate.ps1`, or `source .venv/bin/activate`).
 
 ## Work packages
 

@@ -1,6 +1,7 @@
 > **Team SAHA's working repository.** It holds the official challenge repository (full
-> history, unchanged files) plus our code in `saha/`. Start with [TEAM.md](TEAM.md) for the plan,
-> owners and setup, and [CLAUDE.md](CLAUDE.md) for the rules, for humans and Claude Code alike.
+> history, unchanged files) plus our code in `saha/`. Start with [STATUS.md](STATUS.md) for where we
+> are and what to do next, [TEAM.md](TEAM.md) for the plan, owners and setup, and
+> [CLAUDE.md](CLAUDE.md) for the rules, for humans and Claude Code alike.
 >
 > ```bash
 > python -m saha.pipeline --data <path-to-data-bundle>   # -> submissions/SAHA.csv, validated
