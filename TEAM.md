@@ -61,6 +61,9 @@ three things:
 
 "Success" is never measured on the public 5 minutes alone (CLAUDE.md, rule 2).
 
+**Read [docs/EDA.md](docs/EDA.md) before you start.** It was made from the real data, and it
+changes some of the starting ideas below (marked "EDA").
+
 ### Boundaries between packages
 
 Every frame gets at most one opinion per question, so that no signal is counted twice and the
@@ -126,6 +129,13 @@ pieces fit together without negotiation:
     - A Smart Tagging restart (Type: Throw-in, Corner Kick, Goal Kick, Free Kick, Kick Off)
       *ends* a dead-ball period.
     - After a goal, the ball is D until the kick-off.
+    - EDA: the ball is outside the 0–1 pitch on 4.2% of visible graded frames, in 81 excursions
+      with a median of 0.8 s. Some readings lie far off the pitch (y up to 1.34), so filter
+      implausible positions before trusting them.
+    - EDA: in the public window, restart tags are long windows, only loosely aligned with the
+      real restart. Use a tag as the window to search in, and the tracking to find the frame.
+    - EDA: players' mean speed in the public window is 1.2 m/s when the ball is dead and 2.3 m/s
+      in play.
 
 ### WS3: possession while the ball is tracked (owner: _TBD_)
 
@@ -144,6 +154,8 @@ pieces fit together without negotiation:
       frames, and the ball speed is low.
     - A free or contested ball stays with the last team. Possession changes only when the
       opponent controls the ball. Model this with hysteresis.
+    - EDA: the ball has its own speed channel in the raw data, which the frame table does not
+      load yet (WS1 adds it). The ball has no height channel.
 
 ### WS4: possession while the ball is missing (owner: _TBD_)
 
@@ -155,15 +167,19 @@ The ball is missing on **41% of graded frames**.
     - Smart Tagging phases and their teams
 - **Output.** `cache/evidence/occluded.parquet`: `p_home`, only on frames where the ball is
   missing, short gaps included (see the boundaries above).
-- **First delivery.** Interpolate the ball across short gaps. Add the Smart Tagging phase team
-  as weak evidence.
+- **First delivery.** Carry possession into each gap from the last and next ball sightings: who
+  had the ball just before, and who has it just after. Add the Smart Tagging phase team as weak
+  evidence.
 - **Success.**
     - Team accuracy on WS5 data with the ball hidden the way ours is.
     - Calibration: a `p_home` of 0.8 should be right about 80% of the time.
     - Coverage of the missing-ball frames.
 - **Starting ideas.**
-    - Fill short gaps by interpolating the ball position.
-    - For long gaps, use the team shape: who attacks, the defensive block, pressing.
+    - EDA: the gaps are long, not short. There are 150 missing-ball stretches on graded frames,
+      with a median of 10.7 s and a maximum of 221 s. Stretches of 10 s or more hold 85% of the
+      missing frames, and there are none between 1 and 3 s. The tracker seems to bridge short
+      occlusions itself, so interpolating the ball buys little.
+    - So the core of WS4 is the team shape: who attacks, the defensive block, pressing.
     - Use the team of each Smart Tagging phase. Treat Team = N/A (every throw-in) separately.
     - Study PathCRF (https://github.com/hyunsungkim-ds/pathcrf), which infers possession
       without the ball. Our tracking has no player identities and its slots break up.

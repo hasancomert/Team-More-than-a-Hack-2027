@@ -13,6 +13,7 @@ Row i is video frame i (= submission row i = ATD frame_id i + 1). Columns:
     ball_visible   bool     ball_x and ball_y both present
     n_home/n_away  int8     tracked slots of each team on this frame
     sNN_x/_y/_s    float32  track slot NN (01..46): position 0-1 and speed in m/s
+                            (the metadata says 'kph'; the values are m/s, DECISIONS D012)
 
 Slot NN is the NN-th <Player> of the metadata ("Track NN"): a tracklet, not a person. Its team is
 in the parquet metadata (key "saha"), along with the source file hashes, so a stale cache is

@@ -61,3 +61,11 @@ come here (CLAUDE.md).
     - Packages read anything but write only on their own frames.
     - The pipeline warns about `visible`/`occluded` overlap.
   Details: TEAM.md, "Boundaries between packages".
+
+## 2026-10-31
+
+- **D012 Speed is in m/s.** The metadata labels the players' speed channel `speed_kph`, with unit
+  `kph`. The values are metres per second, as DATA.md says. In the public window the players'
+  mean speed is 2.3 in play and 1.2 when the ball is dead (docs/EDA.md); in km/h those would be
+  walking speeds. The frame table keeps the values as delivered and calls them m/s. WS1 confirms
+  it with a displacement-based check in Phase 1.
