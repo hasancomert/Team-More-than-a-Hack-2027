@@ -71,3 +71,7 @@ come here (CLAUDE.md).
   it with a displacement-based check in Phase 1.
 - **D013 Owners, so far.** WS1 Hasan (team leader), WS2 Alparslan. Baki takes WS3 or WS4. The
   other of the two, and WS5, are still open; they are added here and in TEAM.md once decided.
+- **D014 Python 3.11 for everyone.** Confirmed after a branch was written for Python 3.14. Every
+  package runs on Python 3.11 with the pins in `requirements-saha.txt`, because the submission
+  must come out byte-identical on every member's machine (D002). A missing dependency (for
+  example scikit-learn) is added there, pinned, through a PR.

@@ -22,16 +22,17 @@ leader's machine: `python -m saha.tools.data_checks` passed **16 of 16** checks.
     - The ball goes missing in long stretches (median 10.7 s), not in short blips.
     - The speed channel is in m/s, even though the metadata says km/h (DECISIONS D012).
 
-## Next: Phase 1 starts when PR #1 is merged
+## Now: Phase 1 has started
 
-Phase 1 is parallel work, from 2 to 11 November. Owners and goals are in TEAM.md.
+PR #1 was merged on 31 October, so everything above is on `main`. Phase 1 is parallel work, until
+11 November. Owners and goals are in TEAM.md.
 
 ### Everyone, before writing code
 
 1. Accept the GitHub invitation.
 2. Confirm that you registered as **SAHA**, and download the data from your own link.
-3. Set up the environment ([TEAM.md, Setup](TEAM.md#setup)). `python -m saha.tools.setup_dev`
-   must print only OK lines.
+3. Set up the environment ([TEAM.md, Setup](TEAM.md#setup)). It must be **Python 3.11**, not a
+   newer one (D014). `python -m saha.tools.setup_dev` must print only OK lines.
 4. Run `python -m saha.pipeline` once. It builds your frame table and tests your installation
    end to end.
 5. Read CLAUDE.md, your package in TEAM.md (with the boundaries between packages), docs/EDA.md
@@ -70,7 +71,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 
 | date | what | state |
 |---|---|---|
-| 28 Oct – 1 Nov | Phase 0: shared infrastructure | done; PR #1 in review |
+| 28 – 31 Oct | Phase 0: shared infrastructure | done; PR #1 merged on 31 Oct |
+| 31 Oct – 11 Nov | Phase 1: parallel work | started |
 | 4 Nov | every package's first working evidence file | |
 | 5 Nov | joint score report 1 (WS1) | |
 | 9 Nov | joint score report 2 (WS1) | |
@@ -87,6 +89,10 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
       still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
+- **WS2:** fold the event-driven dead-ball prototype on branch `ws2/event-deadball` into
+  `saha/deadball`. It was written before Phase 0 as a separate pipeline, so it needs to move to
+  Python 3.11, the shared frame table and the evidence interface. Its referee-whistle signal
+  reads the tactical video with ffmpeg, which needs a team decision first (D006).
 - **WS1:**
     - Load the ball's speed channel into the frame table.
     - Confirm the speed unit from player displacements (D012).
