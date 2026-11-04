@@ -92,11 +92,16 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
 - **WS1:**
-    - Load the ball's speed channel into the frame table.
-    - Confirm the speed unit from player displacements (D012).
-    - Stop the combiner from suppressing every possession shorter than 2 s. The placeholder
-      costs do that today, and docs/METRIC_NOTES.md shows that short possessions are where the
-      score is.
+    - Done: the frame table (version 2) has the ball's speed, as `frame_table.load().ball_speed`
+      in m/s. Every member's cache rebuilds itself once, on the next run.
+    - Waiting on a run on the data (team leader):
+        - `python -m saha.tools.data_checks --no-eda` now checks the speed unit against the
+          displacements (D012).
+        - `python -m saha.tools.selfcheck` sweeps the combiner's switching cost without any
+          ground truth (held-out ball touches).
+    - Then: stop the combiner from suppressing every possession shorter than 2 s, with the
+      value the self-check supports. That goes in as an experiment record. The default in
+      `configs/pipeline.toml` stays as it is until then.
 
 ## WS2: bringing `ws2/event-deadball` into the shared structure
 

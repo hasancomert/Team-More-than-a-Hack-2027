@@ -190,6 +190,7 @@ python -m saha.common.frame_table           # build/check the shared frame table
 python -m saha.<package>.build              # one evidence file
 python -m saha.common.evidence              # validate every evidence file
 python -m saha.common.experiments           # every experiment in one table
+python -m saha.tools.selfcheck              # combiner settings, label-free (after a pipeline run)
 python -m pytest                            # tests (synthetic data only)
 python evaluation/validate_submission.py submissions/SAHA.csv
 python evaluation/run_evaluation.py --bootstrap 1000

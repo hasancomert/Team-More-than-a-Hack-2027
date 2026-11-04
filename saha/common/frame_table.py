@@ -9,7 +9,8 @@ Row i is video frame i (= submission row i = ATD frame_id i + 1). Columns:
     atd_present    bool     the ATD has a record for this frame
     half           int8     1 or 2 inside a graded half, 0 elsewhere
     ball_x/_y      float32  normalised 0-1, NaN when the ball is not tracked
-    ball_z         float32  only if the export declares a ball z channel
+    ball_z         float32  only if the export declares a ball z channel (BAR-ATH has none)
+    ball_s         float32  ball speed in m/s, if the export declares it (BAR-ATH does)
     ball_visible   bool     ball_x and ball_y both present
     n_home/n_away  int8     tracked slots of each team on this frame
     sNN_x/_y/_s    float32  track slot NN (01..46): position 0-1 and speed in m/s
@@ -36,7 +37,7 @@ import pyarrow.parquet as pq
 from saha.common import alignment, epts, paths
 from saha.common.constants import GAME, N_FRAMES, PITCH_LENGTH_M, PITCH_WIDTH_M
 
-VERSION = 1
+VERSION = 2
 FILENAME = "frame_table.parquet"
 META_KEY = b"saha"
 HOME, AWAY = 0, 1
@@ -104,6 +105,7 @@ def build(data=None, out=None):
     if ball_x is None or ball_y is None:
         raise epts.EptsError("the data spec declares no ball x/y channels")
     ball_z = place(pick_channel(raw.ball, meta, "z"))
+    ball_s = place(pick_channel(raw.ball, meta, "s"))
     px = place(pick_channel(raw.players, meta, "x"))
     py = place(pick_channel(raw.players, meta, "y"))
     if px is None or py is None:
@@ -129,6 +131,8 @@ def build(data=None, out=None):
     }
     if ball_z is not None:
         columns["ball_z"] = ball_z
+    if ball_s is not None:
+        columns["ball_s"] = ball_s
     columns["ball_visible"] = np.isfinite(ball_x) & np.isfinite(ball_y)
     columns["n_home"] = tracked[:, slot_team == HOME].sum(axis=1).astype(np.int8)
     columns["n_away"] = tracked[:, slot_team == AWAY].sum(axis=1).astype(np.int8)
@@ -179,6 +183,7 @@ class FrameTable:
     half: np.ndarray            # (N,) int8
     ball_xy: np.ndarray         # (N, 2) float32, normalised
     ball_z: object              # (N,) float32 or None
+    ball_speed: object          # (N,) float32 m/s, or None
     ball_visible: np.ndarray    # (N,) bool
     players_xy: np.ndarray      # (N, S, 2) float32, normalised
     players_speed: np.ndarray   # (N, S) float32, m/s
@@ -256,6 +261,7 @@ def load(data=None, build_if_needed=True, path=None):
         half=col("half"),
         ball_xy=np.stack([col("ball_x"), col("ball_y")], axis=-1),
         ball_z=col("ball_z") if "ball_z" in table.column_names else None,
+        ball_speed=col("ball_s") if "ball_s" in table.column_names else None,
         ball_visible=col("ball_visible"),
         players_xy=players_xy,
         players_speed=speed,
