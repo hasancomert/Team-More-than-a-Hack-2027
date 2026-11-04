@@ -178,6 +178,11 @@ pieces fit together without negotiation:
     - The ball has no height channel, and its speed channel does not follow its positions
       (DECISIONS D015). Take the ball's speed from `kinematics.displacement_speed` and the
       nearest player from `kinematics.nearest_player`, both in `saha.common.kinematics`.
+    - The ball's positions are clean, on the graded frames where the ball is tracked
+      (experiments/20261104_ws1_cost-switch-sweep-2.md):
+        - The median step between frames is 0.2 m, and under 1% of steps exceed 1 m.
+        - Its speed from positions has a median of 5.1 m/s and a 90th percentile of 14 m/s.
+        - A player is within 1.5 m of the ball on 42% of these frames.
 
 ### WS4: possession while the ball is missing (owner: Baki or _TBD_)
 

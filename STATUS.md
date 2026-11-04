@@ -97,14 +97,14 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Done, on the data (4 November): the players' speed is in m/s (D012). The ball's speed
       channel is not, so the ball's speed now comes from its positions (D015,
       `saha.common.kinematics`).
-    - Done: the first self-check run,
-      [experiments/20261104_ws1_cost-switch-sweep-1.md](experiments/20261104_ws1_cost-switch-sweep-1.md).
-      It was inconclusive. It found only 109 touches, and the lower costs that recover more of
-      them invent hundreds of short possessions. `cost_switch` stays at 35.
-    - Waiting on a run on the data (team leader), now that touches come from the ball's
-      positions:
-        - `python -m saha.tools.data_checks --speed`
-        - `python -m saha.tools.selfcheck`
+    - Done: the self-check, with its touches found from the ball's positions
+      ([sweep 2](experiments/20261104_ws1_cost-switch-sweep-2.md)).
+        - It finds 942 touches, so each recovered share is good to about ±0.01. The first
+          sweep had only 109.
+        - Lower costs recover a few more touches, but only by inventing many short
+          possessions.
+        - `cost_switch` stays at 35. At 35 nats, the decoder recovers 89% of the withheld
+          touches.
     - Then: let the combiner keep the short possessions that strong evidence supports. Today
       none shorter than 2 s survives.
         - Stronger evidence from WS3 matters more here than a lower cost.
