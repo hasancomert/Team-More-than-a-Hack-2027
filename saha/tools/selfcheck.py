@@ -4,17 +4,21 @@
     python -m saha.tools.selfcheck --param cost_to_dead --values 10 20 35 60
     python -m saha.tools.selfcheck --config configs/<experiment>.toml
 
-A *touch* is a run of at least MIN_TOUCH frames in a graded half where the ball is tracked, slow
-(under TOUCH_SPEED) and within TOUCH_M of one player: a team at the ball. Touches are numbered in
-time and split into two folds, even and odd. For each fold and each value, every evidence source
-loses its p_home opinion on that fold's touches, the match is decoded with the value, and a
-held-out touch counts as recovered when most of its frames come out as the touching team (D
-counts as wrong). The score is the share recovered. The match-wide statistics of the full decode
-are printed beside it, because a setting that wins on touches by inventing possessions should not
-win (docs/METRIC_NOTES.md).
+A *touch* is a run of at least MIN_TOUCH frames in a graded half where the ball is tracked, slow and
+within TOUCH_M of one player: a team at the ball. Slow means under TOUCH_SPEED, measured from the
+ball's positions, because the ATD's ball speed channel does not follow them (DECISIONS D015).
+Touches are numbered in time and split into two folds, even and odd. For each fold and each value,
+every evidence source loses its p_home opinion on that fold's touches, the match is decoded with the
+value, and a held-out touch counts as recovered when most of its frames come out as the touching
+team (D counts as wrong). The score is the share recovered. The match-wide statistics of the full
+decode are printed beside it, because a setting that wins on touches by inventing possessions should
+not win (docs/METRIC_NOTES.md).
 
-No ground truth is used anywhere, so choosing combiner settings with this is allowed (CLAUDE.md,
-rule 2). It reads the evidence files of the last pipeline run and prints aggregates only.
+No ground truth is used anywhere, so this may inform combiner settings (CLAUDE.md, rule 2). Its
+touches come from the same signal as the nearest-player evidence, though, so on its own it favours
+settings that follow that evidence closely: it is a sanity check, not the selector (experiment
+20261104_ws1_cost-switch-sweep-1). It reads the evidence files of the last pipeline run and prints
+aggregates only.
 """
 
 import argparse
@@ -24,7 +28,7 @@ import sys
 import numpy as np
 
 from saha.combine.decode import decode
-from saha.common import alignment, evidence, frame_table, paths, submission
+from saha.common import alignment, evidence, frame_table, kinematics, paths, submission
 from saha.pipeline import DEFAULT_CONFIG, load_config
 
 TOUCH_M = 1.5        # metres between the ball and the nearest player
@@ -34,28 +38,25 @@ DEFAULT_VALUES = (5.0, 10.0, 20.0, 35.0, 60.0)
 PARAMS = ("cost_switch", "cost_to_dead", "cost_from_dead", "prior_dead", "eps")
 
 
-def nearest(ball_m, players_m, slot_team):
-    """(distance in metres, team) of the tracked player nearest the ball; inf and -1 if none."""
-    delta = players_m - ball_m[:, None, :]
-    distance = np.hypot(delta[..., 0], delta[..., 1])
-    distance = np.where(np.isfinite(distance), distance, np.inf)
-    slot = np.argmin(distance, axis=1)
-    closest = distance[np.arange(len(slot)), slot]
-    return closest, np.where(np.isfinite(closest), slot_team[slot], -1)
-
-
-def touches(table):
-    """[(start, stop, team)]: maximal runs of at least MIN_TOUCH frames with one team at the
-    ball, inside the graded halves."""
+def at_ball(table):
+    """(mask, team, counts): the frames with a team at a slow, tracked ball, the nearest team on
+    every frame, and how many graded frames pass each condition in turn (for the report)."""
     ball = table.ball_xy_m()
-    distance, team = nearest(ball, table.players_xy_m(), table.slot_team)
-    if table.ball_speed is not None:
-        speed = table.ball_speed.astype(np.float64)
-    else:
-        step = np.gradient(ball, axis=0)
-        speed = np.hypot(step[:, 0], step[:, 1]) * 25.0
-    at_ball = table.graded & table.ball_visible & (distance <= TOUCH_M) & (speed <= TOUCH_SPEED)
-    team = np.where(at_ball, team, -1)
+    distance, team = kinematics.nearest_player(ball, table.players_xy_m(), table.slot_team)
+    speed = kinematics.displacement_speed(ball)
+    seen = table.graded & table.ball_visible
+    near = seen & (distance <= TOUCH_M)
+    mask = near & (speed <= TOUCH_SPEED)
+    counts = {"graded": int(table.graded.sum()), "ball tracked": int(seen.sum()),
+              "player within {:g} m".format(TOUCH_M): int(near.sum()),
+              "ball under {:g} m/s".format(TOUCH_SPEED): int(mask.sum())}
+    return mask, team, counts
+
+
+def touch_runs(mask, team):
+    """[(start, stop, team)]: maximal runs of at least MIN_TOUCH masked frames with one team,
+    inside the graded halves."""
+    team = np.where(mask, team, -1)
     out = []
     for _, start, stop in alignment.half_slices():
         window = team[start:stop]
@@ -85,7 +86,8 @@ def run(config=DEFAULT_CONFIG, param="cost_switch", values=DEFAULT_VALUES, table
     for entry in entries:
         sources.append((evidence.read_evidence(entry["name"]), float(entry.get("scale", 1.0))))
     table = table or frame_table.load()
-    found = touches(table)
+    at, at_team, counts = at_ball(table)
+    found = touch_runs(at, at_team)
     folds = [[t for i, t in enumerate(found) if i % 2 == fold] for fold in (0, 1)]
     masks = []
     for fold in folds:
@@ -106,7 +108,7 @@ def run(config=DEFAULT_CONFIG, param="cost_switch", values=DEFAULT_VALUES, table
                 hits += same * 2 > stop - start
                 frames += stop - start
                 agree += same
-        rows.append({"value": float(value), "touches": len(found),
+        rows.append({"value": float(value), "touches": len(found), "counts": counts,
                      "recovered": hits / len(found) if found else float("nan"),
                      "frame_agreement": agree / frames if frames else float("nan"), **stats})
     return base, rows
@@ -129,6 +131,9 @@ def main(argv=None):
         return 1
 
     current = getattr(base, args.param)
+    if rows:
+        print("touch frames: " + ", then ".join("{} {}".format(n, name)
+                                               for name, n in rows[0]["counts"].items()))
     print("self-check of {} ({} touches held out in two folds; config value {:g})".format(
         args.param, rows[0]["touches"] if rows else 0, current))
     print("{:>8}  {:>9}  {:>9}  {:>11}  {:>6}  {:>8}  {:>8}  {:>5}".format(

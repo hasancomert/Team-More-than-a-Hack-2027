@@ -10,7 +10,9 @@ Row i is video frame i (= submission row i = ATD frame_id i + 1). Columns:
     half           int8     1 or 2 inside a graded half, 0 elsewhere
     ball_x/_y      float32  normalised 0-1, NaN when the ball is not tracked
     ball_z         float32  only if the export declares a ball z channel (BAR-ATH has none)
-    ball_s         float32  ball speed in m/s, if the export declares it (BAR-ATH does)
+    ball_s         float32  the export's ball speed channel as delivered, if declared (BAR-ATH
+                            does). It is not m/s: it does not follow the ball's positions
+                            (DECISIONS D015). Take the ball's speed from saha.common.kinematics.
     ball_visible   bool     ball_x and ball_y both present
     n_home/n_away  int8     tracked slots of each team on this frame
     sNN_x/_y/_s    float32  track slot NN (01..46): position 0-1 and speed in m/s
@@ -183,7 +185,7 @@ class FrameTable:
     half: np.ndarray            # (N,) int8
     ball_xy: np.ndarray         # (N, 2) float32, normalised
     ball_z: object              # (N,) float32 or None
-    ball_speed: object          # (N,) float32 m/s, or None
+    ball_speed: object          # (N,) float32 as delivered, not m/s (D015); or None
     ball_visible: np.ndarray    # (N,) bool
     players_xy: np.ndarray      # (N, S, 2) float32, normalised
     players_speed: np.ndarray   # (N, S) float32, m/s

@@ -1,6 +1,6 @@
 # Status
 
-Updated **31 October 2026** by WS1. This page says where we are and what to do next; WS1 updates
+Updated **4 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
 it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 [CLAUDE.md](CLAUDE.md).
 
@@ -20,7 +20,9 @@ leader's machine: `python -m saha.tools.data_checks` passed **16 of 16** checks.
 - **[docs/EDA.md](docs/EDA.md) has the main facts of the data.** Read it before you start. Two
   facts change the plan:
     - The ball goes missing in long stretches (median 10.7 s), not in short blips.
-    - The speed channel is in m/s, even though the metadata says km/h (DECISIONS D012).
+    - The players' speed channel is in m/s, even though the metadata says km/h (DECISIONS
+      D012). The ball's speed channel does not follow the ball: take the ball's speed from
+      `saha.common.kinematics` (D015).
 
 ## Now: Phase 1 has started
 
@@ -92,16 +94,24 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
 - **WS1:**
-    - Done: the frame table (version 2) has the ball's speed, as `frame_table.load().ball_speed`
-      in m/s. Every member's cache rebuilds itself once, on the next run.
-    - Waiting on a run on the data (team leader):
-        - `python -m saha.tools.data_checks --no-eda` now checks the speed unit against the
-          displacements (D012).
-        - `python -m saha.tools.selfcheck` sweeps the combiner's switching cost without any
-          ground truth (held-out ball touches).
-    - Then: stop the combiner from suppressing every possession shorter than 2 s, with the
-      value the self-check supports. That goes in as an experiment record. The default in
-      `configs/pipeline.toml` stays as it is until then.
+    - Done, on the data (4 November): the players' speed is in m/s (D012). The ball's speed
+      channel is not, so the ball's speed now comes from its positions (D015,
+      `saha.common.kinematics`).
+    - Done: the first self-check run,
+      [experiments/20261104_ws1_cost-switch-sweep-1.md](experiments/20261104_ws1_cost-switch-sweep-1.md).
+      It was inconclusive. It found only 109 touches, and the lower costs that recover more of
+      them invent hundreds of short possessions. `cost_switch` stays at 35.
+    - Waiting on a run on the data (team leader), now that touches come from the ball's
+      positions:
+        - `python -m saha.tools.data_checks --speed`
+        - `python -m saha.tools.selfcheck`
+    - Then: let the combiner keep the short possessions that strong evidence supports. Today
+      none shorter than 2 s survives.
+        - Stronger evidence from WS3 matters more here than a lower cost.
+        - The costs are chosen from WS5's external data and from match-wide consistency.
+        - The self-check stays a sanity check. Its touches come from the same signal as the
+          nearest-player evidence, so it favours costs that follow the evidence closely.
+    - Joint score report 1 on 5 November.
 
 ## WS2: bringing `ws2/event-deadball` into the shared structure
 

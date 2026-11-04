@@ -102,6 +102,8 @@ Read the match only through `saha.common`:
 
 - `frame_table.load()` gives arrays per video frame.
 - `smart_tagging.load()` and `homography.load()` load the other two sources.
+- `kinematics` gives speeds and the nearest player from positions. The ATD's ball speed channel
+  does not follow the ball (DECISIONS D015), so never use it as a speed.
 
 ## Evidence interface
 

@@ -175,8 +175,9 @@ pieces fit together without negotiation:
       frames, and the ball speed is low.
     - A free or contested ball stays with the last team. Possession changes only when the
       opponent controls the ball. Model this with hysteresis.
-    - EDA: the ball has its own speed channel, in m/s: `frame_table.load().ball_speed`. The
-      ball has no height channel.
+    - The ball has no height channel, and its speed channel does not follow its positions
+      (DECISIONS D015). Take the ball's speed from `kinematics.displacement_speed` and the
+      nearest player from `kinematics.nearest_player`, both in `saha.common.kinematics`.
 
 ### WS4: possession while the ball is missing (owner: Baki or _TBD_)
 
