@@ -66,8 +66,15 @@ def _script(rng, n_frames):
     return truth
 
 
+def _speed(xy_m):
+    """Speed in m/s from positions in metres, by central differences along axis 0."""
+    step = np.gradient(xy_m, axis=0)
+    return np.hypot(step[..., 0], step[..., 1]) * FPS
+
+
 def _tracks(rng, truth, n_frames, n_home, n_away, ball_drop):
-    """(players (n, S, 2) normalised, speed (n, S), ball (n, 2)), NaN where untracked."""
+    """(players (n, S, 2) normalised, speed (n, S), ball (n, 2), ball speed (n,)), NaN where
+    untracked. Speeds are in m/s and agree with the displacements, as in the real export."""
     n_slots = n_home + n_away
     scale = np.array(FIELD, dtype=np.float64)
     frames = np.arange(n_frames)
@@ -79,15 +86,15 @@ def _tracks(rng, truth, n_frames, n_home, n_away, ball_drop):
                         34.0 + 22 * np.sin(frames / 677.0)], axis=1)
     lead = np.where(label == A, n_home, 0)
     players = np.empty((n_frames, n_slots, 2))
-    speed = np.empty((n_frames, n_slots))
     for slot in range(n_slots):
         angle = 2 * np.pi * slot / n_slots + 0.01 * frames
         around = carrier + (6 + slot) * np.stack([np.cos(angle), np.sin(angle)], axis=1)
         players[:, slot] = np.where((lead == slot)[:, None], carrier, around) / scale
-        speed[:, slot] = np.where(label == D, 0.5, 1.0 + 0.1 * slot)
+    speed = _speed(players * scale)
     players[label == X] = np.nan
     speed[label == X] = np.nan
     ball = (carrier + [0.4, 0.2]) / scale
+    ball_speed = _speed(carrier)
     ball[label > A] = np.nan
 
     # Drop the ball in chunks on about `ball_drop` of the alive frames, as occlusions do.
@@ -98,15 +105,17 @@ def _tracks(rng, truth, n_frames, n_home, n_away, ball_drop):
         length = int(rng.integers(5, 40))
         ball[start:start + length] = np.nan
         dropped += length
+    ball_speed[~np.isfinite(ball[:, 0])] = np.nan
     # A short slot dropout, so missing players are exercised too.
     if n_frames > 100:
         players[50:80, n_slots - 1] = np.nan
         speed[50:80, n_slots - 1] = np.nan
-    return players, speed, ball
+    return players, speed, ball, ball_speed
 
 
 def _metadata_xml(n_home, n_away, n_frames):
-    """EPTS metadata with Metrica's structure: position sensor x/y/z, speed sensor s.
+    """EPTS metadata laid out like the delivered file: position sensor x/y, speed sensor s
+    (labelled km/h there, though the values are m/s: DECISIONS D012), ball x, y and speed.
 
     FrameRate is written as '25.0', as in the delivered file."""
     n_slots = n_home + n_away
@@ -139,10 +148,9 @@ def _metadata_xml(n_home, n_away, n_frames):
         '<Sensor id="position"><Name>Position</Name><Channels>'
         '<Channel id="x"><Name>position_x</Name><Unit>normalized</Unit></Channel>'
         '<Channel id="y"><Name>position_y</Name><Unit>normalized</Unit></Channel>'
-        '<Channel id="z"><Name>position_z</Name><Unit>normalized</Unit></Channel>'
         '</Channels></Sensor>'
-        '<Sensor id="speed"><Name>Speed</Name><Channels>'
-        '<Channel id="s"><Name>speed</Name><Unit>meters per second</Unit></Channel>'
+        '<Sensor id="speed"><Name>Speed in kilometers per hour</Name><Channels>'
+        '<Channel id="s"><Name>speed_kph</Name><Unit>kph</Unit></Channel>'
         '</Channels></Sensor>')
     return """<?xml version="1.0" encoding="utf-8"?>
 <main>
@@ -181,7 +189,7 @@ def _metadata_xml(n_home, n_away, n_frames):
       <SplitRegister separator=",">
         <BallChannelRef channelId="x"/>
         <BallChannelRef channelId="y"/>
-        <BallChannelRef channelId="z"/>
+        <BallChannelRef channelId="s"/>
       </SplitRegister>
     </DataFormatSpecification>
   </DataFormatSpecifications>
@@ -191,7 +199,7 @@ def _metadata_xml(n_home, n_away, n_frames):
            channels="\n".join(channels), groups="\n".join(groups), end=n_frames)
 
 
-def _raw_lines(players, speed, ball, ball_x_from_frame_id):
+def _raw_lines(players, speed, ball, ball_speed, ball_x_from_frame_id):
     def num(value, digits):
         return "NaN" if not np.isfinite(value) else "{:.{}f}".format(value, digits)
 
@@ -206,7 +214,8 @@ def _raw_lines(players, speed, ball, ball_x_from_frame_id):
             bx, by = "{:.6f}".format(frame_id / 1e6), "0.50000"  # frame id readable from x
         else:
             bx, by = num(ball[f, 0], 5), num(ball[f, 1], 5)
-        lines.append("{}:{}:{},{},NaN".format(frame_id, groups, bx, by))
+        bs = "NaN" if not np.isfinite(ball_speed[f]) else repr(float(ball_speed[f]))
+        lines.append("{}:{}:{},{},{}".format(frame_id, groups, bx, by, bs))
     return lines
 
 
@@ -260,11 +269,13 @@ def write_match(data_dir, n_frames=N_FRAMES, n_home=2, n_away=2, seed=0, ball_dr
     Path(stems["atd_raw"]).parent.mkdir(parents=True, exist_ok=True)
 
     truth = _script(rng, n_frames)
-    players, speed, ball = _tracks(rng, truth, n_frames, n_home, n_away, ball_drop)
+    players, speed, ball, ball_speed = _tracks(rng, truth, n_frames, n_home, n_away,
+                                               ball_drop)
 
     Path(stems["atd_meta"]).write_text(_metadata_xml(n_home, n_away, n_frames), encoding="utf-8")
     with open(stems["atd_raw"], "w", encoding="ascii", newline="\n") as handle:
-        handle.write("\n".join(_raw_lines(players, speed, ball, ball_x_from_frame_id)) + "\n")
+        handle.write("\n".join(_raw_lines(players, speed, ball, ball_speed,
+                                           ball_x_from_frame_id)) + "\n")
     Path(stems["smart_tagging"]).write_text(_tagging_xml(truth, n_frames), encoding="utf-8")
 
     matrix = "1822.663,-511.2005,44.48168,1.698323,169.2971,255.7303,-0.01907188,-0.5269586,1"

@@ -8,9 +8,10 @@
   3. starter/baseline.py rebuilt into a temporary folder == evaluation/results/, byte for byte
   4. every channel and parameter declared in the EPTS metadata, flagging ball state or ownership
   5. the shared frame table, with its consistency checks
-  6. our own data layer reproduces the official baseline frame for frame
-  7. the pipeline end to end, scored on the public window
-  8. docs/EDA.md (aggregate statistics and figures)
+  6. the speed unit, from displacements (DECISIONS D012)
+  7. our own data layer reproduces the official baseline frame for frame
+  8. the pipeline end to end, scored on the public window
+  9. docs/EDA.md (aggregate statistics and figures)
 
 Everything printed is aggregate (counts, percentages, hashes, names of channels); the report is
 also written to cache/phase0_checks.json. Read it before sharing it with anyone or anything, and
@@ -38,6 +39,10 @@ if str(STARTER) not in sys.path:
     sys.path.insert(0, str(STARTER))
 VARIANTS = ("baseline_raw", "baseline_smooth25", "baseline_smooth50", "baseline_smooth125")
 RESULTS = paths.EVALUATION_DIR / "results"
+SPAN = 5            # frames between the two positions a displacement speed is measured over
+MAX_STEP_M = 1.0    # a larger single-frame step is an identity switch, not running
+MIN_SPEED = 2.0     # m/s; slower movement is dominated by tracking jitter
+M_PER_S_RANGE = (0.6, 1.6)   # median ratio for "the channel is m/s"; km/h would read ~3.6
 
 
 class Report:
@@ -134,6 +139,38 @@ def check_frame_table(report):
     return table
 
 
+def speed_ratio(xy_m, speed, span=SPAN, max_step=MAX_STEP_M, min_speed=MIN_SPEED):
+    """(median of provided speed / displacement speed, number of samples).
+
+    xy_m is (N, ..., 2) metres and speed (N, ...) as provided. A sample is a pair of frames
+    `span` apart with the object tracked throughout, no single step above `max_step` and a
+    displacement speed of at least `min_speed`; the provided speed is read halfway between.
+    About 1 means the channel is in m/s, about 3.6 means km/h.
+    """
+    step = np.hypot(*np.moveaxis(np.diff(xy_m, axis=0), -1, 0))         # (N-1, ...)
+    step = np.where(np.isfinite(step), step, np.inf)
+    worst = np.lib.stride_tricks.sliding_window_view(step, span, axis=0).max(axis=-1)
+    moved = xy_m[span:] - xy_m[:-span]
+    disp = np.hypot(moved[..., 0], moved[..., 1]) * 25.0 / span
+    given = speed[span // 2:len(speed) - span + span // 2]
+    ok = (worst <= max_step) & (disp >= min_speed) & np.isfinite(given) & (given > 0)
+    if not ok.any():
+        return float("nan"), 0
+    return float(np.median(given[ok] / disp[ok])), int(ok.sum())
+
+
+def check_speed_units(report, table):
+    """D012: the metadata says km/h, DATA.md says m/s. The displacements decide."""
+    ratio, n = speed_ratio(table.players_xy_m(), table.players_speed)
+    report.add("speed unit: players", M_PER_S_RANGE[0] <= ratio <= M_PER_S_RANGE[1],
+               "median provided/displacement {:.2f} over {} samples (1 = m/s, 3.6 = km/h)"
+               .format(ratio, n))
+    if table.ball_speed is not None:
+        ratio, n = speed_ratio(table.ball_xy_m(), table.ball_speed)
+        report.add("speed unit: ball", M_PER_S_RANGE[0] <= ratio <= M_PER_S_RANGE[1],
+                   "median provided/displacement {:.2f} over {} samples".format(ratio, n))
+
+
 def check_our_baseline(report, meta, table, results=RESULTS):
     """Our parser + nearest_team + the official smoothing == the published baseline files."""
     import baseline
@@ -191,6 +228,7 @@ def main(argv=None):
     check_baseline_files(report)
     meta = check_metadata(report)
     table = check_frame_table(report)
+    check_speed_units(report, table)
     check_our_baseline(report, meta, table)
     del table
     run_pipeline(report)
