@@ -9,7 +9,7 @@ import sys
 import numpy as np
 import pytest
 
-from saha.common import epts, frame_table, paths, submission
+from saha.common import epts, frame_table, kinematics, paths, submission
 from saha.common import experiments
 from saha.common.constants import A, D, H, X
 from saha import pipeline
@@ -139,7 +139,22 @@ def test_speed_ratio_tells_metres_per_second_from_km_per_hour(full_match, use_da
     assert 3.3 < ratio < 3.9
     report = data_checks.Report()
     data_checks.check_speed_units(report, table)
-    assert [row["ok"] for row in report.rows] == [True, True]
+    assert [(row["check"], row["ok"]) for row in report.rows] == [("speed unit: players", True)]
+
+
+def test_ball_report_on_a_synthetic_match(full_match, use_data, tmp_path):
+    use_data(full_match, tmp_path / "cache")
+    table = frame_table.load()
+    lines = data_checks.ball_report(table)
+    assert len(lines) == 8 and lines[-1].startswith("  nearest player (m): p10")
+    seen = table.graded & table.ball_visible
+    speed = kinematics.displacement_speed(table.ball_xy_m())
+    channel = table.ball_speed.astype(np.float64)
+    ratio, n = data_checks.channel_ratio(channel, speed, seen)
+    assert n > 1000 and 0.9 < ratio < 1.1             # synthetic speeds follow the positions
+    ratio, _ = data_checks.channel_ratio(channel * 0.2, speed, seen)
+    assert 0.18 < ratio < 0.22
+    assert data_checks.main(["--speed"]) == 0
 
 
 def test_selfcheck_recovers_held_out_touches(full_match, use_data, tmp_path):
@@ -147,6 +162,8 @@ def test_selfcheck_recovers_held_out_touches(full_match, use_data, tmp_path):
     assert pipeline.main(["--out", str(tmp_path / "SAHA.csv"), "--no-score"]) == 0
     _, rows = selfcheck.run(values=(10.0, 60.0))
     assert len(rows) == 2 and rows[0]["touches"] > 100
+    counts = list(rows[0]["counts"].values())
+    assert counts == sorted(counts, reverse=True) and counts[-1] > 0
     assert rows[0]["recovered"] > 0.7 and rows[0]["recovered"] >= rows[1]["recovered"]
     assert {"n_possessions", "short_possessions_lt_2s", "d_rate"} <= set(rows[0])
     assert selfcheck.main(["--values", "20"]) == 0

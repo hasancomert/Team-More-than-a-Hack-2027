@@ -2,13 +2,15 @@
 
     python -m saha.tools.data_checks              # all checks, then docs/EDA.md
     python -m saha.tools.data_checks --no-eda
+    python -m saha.tools.data_checks --speed      # only item 6, in a minute
 
   1. the data bundle is complete (sizes as delivered)
   2. the official starter checks: ATD alignment, Smart Tagging time base, homography rows
   3. starter/baseline.py rebuilt into a temporary folder == evaluation/results/, byte for byte
   4. every channel and parameter declared in the EPTS metadata, flagging ball state or ownership
   5. the shared frame table, with its consistency checks
-  6. the speed unit, from displacements (DECISIONS D012)
+  6. the players' speed unit, from displacements (DECISIONS D012), and aggregate facts about the
+     ball's track and speed channel (D015)
   7. our own data layer reproduces the official baseline frame for frame
   8. the pipeline end to end, scored on the public window
   9. docs/EDA.md (aggregate statistics and figures)
@@ -29,7 +31,7 @@ from pathlib import Path
 
 import numpy as np
 
-from saha.common import epts, frame_table, paths
+from saha.common import epts, frame_table, kinematics, paths
 from saha.common.constants import N_FRAMES, PITCH_LENGTH_M, PITCH_WIDTH_M
 from saha.nearest.build import nearest_team
 from saha.tools.setup_dev import EXPECTED_BYTES
@@ -160,15 +162,65 @@ def speed_ratio(xy_m, speed, span=SPAN, max_step=MAX_STEP_M, min_speed=MIN_SPEED
 
 
 def check_speed_units(report, table):
-    """D012: the metadata says km/h, DATA.md says m/s. The displacements decide."""
+    """D012: the metadata says km/h, DATA.md says m/s. The displacements decide.
+
+    Only the players' channel is checked. The ball's channel does not follow the ball's
+    displacements (D015); nothing uses it, and ball_report describes it instead.
+    """
     ratio, n = speed_ratio(table.players_xy_m(), table.players_speed)
     report.add("speed unit: players", M_PER_S_RANGE[0] <= ratio <= M_PER_S_RANGE[1],
                "median provided/displacement {:.2f} over {} samples (1 = m/s, 3.6 = km/h)"
                .format(ratio, n))
+
+
+def quantiles(values, qs=(10, 50, 90, 99)):
+    values = values[np.isfinite(values)]
+    if not len(values):
+        return "n/a"
+    return " ".join("p{} {:.2f}".format(q, np.percentile(values, q)) for q in qs)
+
+
+def channel_ratio(channel, speed, mask, min_speed=1.0):
+    """(median of channel / speed, frames used): masked frames where both are finite, the
+    channel is positive and the speed is at least `min_speed` m/s."""
+    ok = mask & np.isfinite(channel) & (channel > 0) & np.isfinite(speed) & (speed >= min_speed)
+    if not ok.any():
+        return float("nan"), 0
+    return float(np.median(channel[ok] / speed[ok])), int(ok.sum())
+
+
+def ball_report(table):
+    """Aggregate facts about the ball, as lines (D015). Graded frames with the ball tracked only:
+    its frame-to-frame steps, its speed from positions, the ATD's speed channel against that
+    speed, and the distance to the nearest player."""
+    seen = table.graded & table.ball_visible
+    ball = table.ball_xy_m()
+    lines = ["ball tracked on {} graded frames".format(int(seen.sum()))]
+    step = np.full(len(ball), np.nan)
+    step[1:] = np.hypot(ball[1:, 0] - ball[:-1, 0], ball[1:, 1] - ball[:-1, 1])
+    steps = step[seen]
+    steps = steps[np.isfinite(steps)]
+    lines.append("  step from the previous frame (m): {}; exactly 0 on {:.1%}, over 1 m on {:.1%}"
+                 .format(quantiles(steps), (steps == 0).mean() if len(steps) else float("nan"),
+                         (steps > 1.0).mean() if len(steps) else float("nan")))
+    speeds = {span: kinematics.displacement_speed(ball, span) for span in (5, 25)}
+    for span, speed in speeds.items():
+        lines.append("  speed from positions, {}-frame window (m/s): {}".format(
+            span, quantiles(speed[seen])))
     if table.ball_speed is not None:
-        ratio, n = speed_ratio(table.ball_xy_m(), table.ball_speed)
-        report.add("speed unit: ball", M_PER_S_RANGE[0] <= ratio <= M_PER_S_RANGE[1],
-                   "median provided/displacement {:.2f} over {} samples".format(ratio, n))
+        channel = table.ball_speed.astype(np.float64)
+        given = channel[seen]
+        lines.append("  ATD speed channel: finite on {:.1%}, exactly 0 on {:.1%}; {}".format(
+            np.isfinite(given).mean(), (given == 0).mean(), quantiles(given)))
+        for span, speed in speeds.items():
+            ratio, n = channel_ratio(channel, speed, seen)
+            lines.append("  ATD speed channel / speed from positions ({}-frame window): median "
+                         "{:.2f} over {} frames".format(span, ratio, n))
+    distance, _ = kinematics.nearest_player(ball, table.players_xy_m(), table.slot_team)
+    near = distance[seen]
+    lines.append("  nearest player (m): {}; within 1.5 m on {:.1%}, within 2.5 m on {:.1%}".format(
+        quantiles(near), (near <= 1.5).mean(), (near <= 2.5).mean()))
+    return lines
 
 
 def check_our_baseline(report, meta, table, results=RESULTS):
@@ -216,11 +268,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--data", help="data bundle root (default: MTAH_DATA_DIR or ./data)")
     parser.add_argument("--no-eda", action="store_true")
+    parser.add_argument("--speed", action="store_true",
+                        help="only the speed-unit check and the ball report (fast)")
     args = parser.parse_args(argv)
     if args.data:
         paths.use_data_dir(args.data)
 
     report = Report()
+    if args.speed:
+        table = frame_table.load()
+        check_speed_units(report, table)
+        print("\n".join(ball_report(table)))
+        return 0 if all(row["ok"] for row in report.rows) else 1
     if not check_files(report):
         print("\nThe data bundle is incomplete; nothing else can run. See TEAM.md.")
         return 1
@@ -229,6 +288,8 @@ def main(argv=None):
     meta = check_metadata(report)
     table = check_frame_table(report)
     check_speed_units(report, table)
+    report.details["ball"] = ball_report(table)
+    print("\n".join(report.details["ball"]))
     check_our_baseline(report, meta, table)
     del table
     run_pipeline(report)

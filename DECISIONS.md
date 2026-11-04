@@ -75,3 +75,18 @@ come here (CLAUDE.md).
   package runs on Python 3.11 with the pins in `requirements-saha.txt`, because the submission
   must come out byte-identical on every member's machine (D002). A missing dependency (for
   example scikit-learn) is added there, pinned, through a PR.
+
+## 2026-11-04
+
+- **D015 The ball's speed comes from its positions.** The team leader ran
+  `python -m saha.tools.data_checks` on the data, on `main` at 8d7ca72:
+    - The players' speed channel follows their displacements: the median ratio is 0.99 over
+      996,690 samples. This confirms D012.
+    - The ball's channel does not: the median ratio is 0.19, over only 6,806 samples.
+
+  Until we know what the ball's channel measures, nothing uses it as a speed:
+    - `saha.common.kinematics.displacement_speed` gives the ball's speed from its positions.
+    - `kinematics.nearest_player` gives the nearest player, with the same arithmetic as the
+      nearest-player evidence.
+    - The frame table keeps the channel as delivered (`ball_speed`), for diagnostics only.
+      `python -m saha.tools.data_checks --speed` describes it.
