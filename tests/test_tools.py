@@ -1,4 +1,5 @@
-"""The WS1 tools on synthetic data: data checks, EDA, the metric study, experiment records."""
+"""The WS1 tools on synthetic data: data checks, EDA, the metric study, experiment records,
+the self-check."""
 
 import datetime
 import json
@@ -11,7 +12,8 @@ import pytest
 from saha.common import epts, frame_table, paths, submission
 from saha.common import experiments
 from saha.common.constants import A, D, H, X
-from saha.tools import data_checks, eda, metric_behaviour as mb
+from saha import pipeline
+from saha.tools import data_checks, eda, metric_behaviour as mb, selfcheck
 
 
 def test_data_checks_on_a_synthetic_bundle(full_match, use_data, tmp_path):
@@ -125,3 +127,27 @@ def test_frame_table_detects_stale_cache(small_match, use_data, tmp_path):
     finally:
         meta.write_text(original)
     assert epts.read_metadata(meta).frame_rate == 25
+
+
+def test_speed_ratio_tells_metres_per_second_from_km_per_hour(full_match, use_data, tmp_path):
+    use_data(full_match, tmp_path / "cache")
+    table = frame_table.load()
+    assert table.meta["version"] == frame_table.VERSION and table.ball_speed is not None
+    ratio, n = data_checks.speed_ratio(table.players_xy_m(), table.players_speed)
+    assert n > 1000 and 0.9 < ratio < 1.1
+    ratio, _ = data_checks.speed_ratio(table.players_xy_m(), table.players_speed * 3.6)
+    assert 3.3 < ratio < 3.9
+    report = data_checks.Report()
+    data_checks.check_speed_units(report, table)
+    assert [row["ok"] for row in report.rows] == [True, True]
+
+
+def test_selfcheck_recovers_held_out_touches(full_match, use_data, tmp_path):
+    use_data(full_match, tmp_path / "cache")
+    assert pipeline.main(["--out", str(tmp_path / "SAHA.csv"), "--no-score"]) == 0
+    _, rows = selfcheck.run(values=(10.0, 60.0))
+    assert len(rows) == 2 and rows[0]["touches"] > 100
+    assert rows[0]["recovered"] > 0.7 and rows[0]["recovered"] >= rows[1]["recovered"]
+    assert {"n_possessions", "short_possessions_lt_2s", "d_rate"} <= set(rows[0])
+    assert selfcheck.main(["--values", "20"]) == 0
+
