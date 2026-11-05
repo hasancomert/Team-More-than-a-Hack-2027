@@ -139,6 +139,9 @@ come here (CLAUDE.md).
       value is never adjusted to this match's output.
     - This match's data is used only as input, for automatic checks, and to understand what
       counts as possession.
-    - The answer does not address aggregate statistics shown to an AI assistant. D008 stays in
-      force: no data and no frame-level derivative ever reaches an LLM. The team leader decides
-      whether aggregates may still be shown (STATUS.md).
+    - The answer does not address aggregate statistics shown to an AI assistant. The team leader
+      decided on 5 November to keep D008 as it is:
+        - Members may show Claude Code aggregate output only: counts, percentages, percentiles
+          and scores.
+        - No data and no frame-level derivative ever reaches an LLM.
+        - The technical document says so.

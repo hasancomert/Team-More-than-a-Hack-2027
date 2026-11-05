@@ -107,8 +107,6 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
       still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
-    - Decide whether members may still show aggregate statistics to Claude Code (D017). Until
-      then, D008 stands.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
 - **WS1:**
@@ -131,6 +129,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
           from the same signal as the nearest-player evidence, so it favours costs that follow
           the evidence closely.
     - Joint score report 1 on 5 November.
+    - The technical document says how the team used Claude Code: aggregate output only, never
+      data (D008, D017).
 
 ## WS2: bringing `ws2/event-deadball` into the shared structure
 
