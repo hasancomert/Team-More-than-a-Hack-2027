@@ -84,9 +84,9 @@ That leaves 942 touches of at least 6 frames.
 Rejected: `cost_switch` stays at 35. At 35 nats, the decoder recovers 89% of the withheld
 touches.
 
-The self-check is now a working sanity check. Its uses from here:
+The self-check is now a working check. It never chooses a value (DECISIONS D016, added on 5
+November):
 
-- **Choosing the costs:** the costs come from WS5's external data (possession counts and
-  durations in labelled matches) and from match-wide consistency.
-- **Checking new evidence:** a new evidence version (WS3) should keep or raise the recovered share
-  at the same possession count.
+- **Choosing the costs:** they are tuned on WS5's external data only.
+- **Catching errors:** a new evidence version (WS3) that loses many recovered touches, or
+  multiplies the short possessions, is checked for a bug first.

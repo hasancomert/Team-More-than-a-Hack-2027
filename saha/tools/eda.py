@@ -148,7 +148,8 @@ def section_speeds(t, gt, figures):
     alive = window & ((gt == H) | (gt == A)) & np.isfinite(mean_speed)
     lines = ["## Player speed when the ball is dead", "",
              "Per-frame mean speed of tracked players (m/s), public window split by the public "
-             "ground truth:", "",
+             "ground truth. It helps to understand the data, but it is never a threshold or a "
+             "parameter (DECISIONS D016):", "",
              "| | frames | median | p10 | p90 | ball visible |", "|---|---|---|---|---|---|"]
     for label, mask in (("dead (D)", dead), ("alive (H/A)", alive)):
         values = mean_speed[mask]

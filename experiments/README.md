@@ -18,6 +18,7 @@ python -m saha.common.experiments check                  # what CI runs
 
 Then you write four short sections: what changed, why, the result, and the decision.
 
-The **why** must be a football or physics reason, or a WS5 external-validation result. "The
-public score went up" is never a reason on its own (CLAUDE.md). Record rejected experiments too:
-they are half the technical document.
+The **why** must be a football or physics reason, or a result on WS5's external data, the only
+place where parameters are tuned (DECISIONS D016). The public score and the checks on this
+match's data never choose a value. Record rejected experiments too: they are half the technical
+document.

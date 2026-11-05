@@ -1,8 +1,22 @@
 # Status
 
-Updated **4 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
+Updated **5 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
 it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 [CLAUDE.md](CLAUDE.md).
+
+## Read first: the organizers' rules on training and tuning (5 November)
+
+The organizers sent the rules on what is and is not allowed. The full text and what it changes
+are in DECISIONS D016; CLAUDE.md rules 1 and 2 follow it. In short:
+
+- Train, fit, calibrate and tune on **external data only**. Until the organizers answer our
+  questions, that rules out this match's tracking and tags too: no fitting on them,
+  self-supervised included.
+- Never check our output against the video. Watching the video to understand what counts as
+  possession is allowed.
+- Automatic checks on this match's data are allowed. They catch errors; they never choose a
+  value.
+- Never upload the data to AI services (D008 already).
 
 ## Where we are: Phase 0 is done
 
@@ -91,6 +105,7 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
       still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
+    - Send the organizers our questions on D016, and record their answer in DECISIONS.md.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
 - **WS1:**
@@ -108,9 +123,10 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Then: let the combiner keep the short possessions that strong evidence supports. Today
       none shorter than 2 s survives.
         - Stronger evidence from WS3 matters more here than a lower cost.
-        - The costs are chosen from WS5's external data and from match-wide consistency.
-        - The self-check stays a sanity check. Its touches come from the same signal as the
-          nearest-player evidence, so it favours costs that follow the evidence closely.
+        - The costs are tuned on WS5's external data only (D016).
+        - The self-check stays a check: it never chooses a value (D016). Its touches also come
+          from the same signal as the nearest-player evidence, so it favours costs that follow
+          the evidence closely.
     - Joint score report 1 on 5 November.
 
 ## WS2: bringing `ws2/event-deadball` into the shared structure
@@ -135,15 +151,20 @@ WS2 (with Claude Code, if you use it) works through this list:
 4. **Agree with WS3/WS4 first.** The formation model and the ball-control signal answer WS3's
    and WS4's questions. Agree with their owners before shipping them, and keep the TEAM.md
    boundaries.
-5. **Two rule fixes, required before any merge** (RULES.md, CLAUDE.md rules 1–2, D009):
+5. **Three rule fixes, required before any merge** (CLAUDE.md rules 1–2, D009, D016):
     - The hard-hold versus soft-hold choice was made by comparing versions on the public
       window and on restart times read off the video. Both are out: no hand labels on this
-      match for any purpose, validation included, and the public window never chooses between
-      two versions. Re-decide it by football reasoning, by the self-supervised test, or on
-      WS5's external data. Rewrite that part of the text to say how it was decided.
-    - The whistle frequency bands were measured by hand on this match's audio. Find the
-      whistle's two tones automatically, or take a generic whistle band from outside this
-      match, so that no constant comes from inspecting this game.
+      match for any purpose, validation included; the public window never chooses between two
+      versions; and checking output against the video is not allowed. Re-decide it by football
+      reasoning or on WS5's external data, and rewrite that part of the text to say how.
+    - The whistle frequency bands were measured by hand on this match's audio. Take a generic
+      whistle band from outside this match. Estimating the tones from this match's audio may
+      count as calibrating on the provided video (D016), so wait for the organizers' answer
+      before trying it.
+    - The dead-ball classifier is trained on labels that rules make from this match's tracking,
+      and the team-shape model is fitted on this match too. Training uses external data only
+      (D016): train them on WS5's data, replace them with rules whose constants come from
+      reasoning, or wait for the organizers' answer.
 6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
    ffmpeg on every machine that reproduces the submission. Bring it to the team together with
    a determinism check: the same whistle times on two machines. Until then, the rest must work
