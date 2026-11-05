@@ -18,7 +18,8 @@ from saha.common.constants import X
 class CombineParams:
     """Placeholders until WS1 sets them on WS5's external validation data -- not on public GT."""
     eps: float = 0.01             # probability clip: |logit| <= 4.6 nats per unit of weight
-    prior_dead: float = 0.0       # nats added to the dead-vs-alive track on every frame
+    prior_dead: float = -0.693    # nats on the dead track: P(dead) = 1/3, so H, A and D tie on a
+                                  # frame without evidence (half of n(0), viterbi.emissions)
     cost_switch: float = 35.0     # nats, H <-> A (~1 s of p = 0.8 evidence at weight 1)
     cost_to_dead: float = 35.0    # nats, H/A -> D
     cost_from_dead: float = 35.0  # nats, D -> H/A

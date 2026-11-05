@@ -1,5 +1,7 @@
 """Fusion and segmentation: exact integers, deterministic, and doing what the costs say."""
 
+import math
+
 import numpy as np
 
 from saha.combine import fuse, viterbi
@@ -48,6 +50,9 @@ def test_no_opinion_contributes_nothing():
     assert not dead.any() and not home.any()
 
 
+PRIOR = fuse.nats_to_units(CombineParams().prior_dead)   # the neutral dead prior, in units
+
+
 def segments(path):
     breaks = np.flatnonzero(path[1:] != path[:-1]) + 1
     return [(int(path[s]), int(e - s)) for s, e in zip(np.r_[0, breaks], np.r_[breaks, len(path)])]
@@ -58,7 +63,7 @@ def test_viterbi_follows_strong_evidence_and_ignores_blips():
     home = np.full(300, 2 * unit, dtype=np.int64)
     home[150:] = -2 * unit                       # away from frame 150
     home[60:63] = -2 * unit                      # a 3-frame blip
-    dead = np.full(300, -unit, dtype=np.int64)
+    dead = np.full(300, PRIOR - unit, dtype=np.int64)
     scores = viterbi.emissions(dead, home)
     path = viterbi.decode(scores, 20 * unit, 20 * unit, 20 * unit)
     assert segments(path) == [(H, 150), (A, 150)]
@@ -69,9 +74,41 @@ def test_viterbi_follows_strong_evidence_and_ignores_blips():
 def test_viterbi_ties_are_deterministic():
     flat = np.zeros((50, 3), dtype=np.int64)
     assert (viterbi.decode(flat, 5, 5, 5) == H).all()
-    dead = np.r_[np.full(20, -10), np.full(20, 10)].astype(np.int64)
+    dead = PRIOR + np.r_[np.full(20, -10), np.full(20, 10)].astype(np.int64)
     path = viterbi.decode(viterbi.emissions(dead, np.zeros(40, dtype=np.int64)), 0, 0, 0)
     assert (path[:20] == H).all() and (path[20:] == D).all()
+
+
+def log_sigmoid(x):
+    return -math.log1p(math.exp(-x)) if x >= 0 else x - math.log1p(math.exp(x))
+
+
+def test_emissions_are_doubled_log_probabilities():
+    for d_nats, h_nats in ((0.0, 0.0), (1.3, -2.1), (-2.0, 0.7), (0.4, 6.0), (-3.0, -15.0)):
+        dead = np.array([PRIOR + fuse.nats_to_units(d_nats)], dtype=np.int64)
+        home = np.array([fuse.nats_to_units(h_nats)], dtype=np.int64)
+        half = viterbi.emissions(dead, home)[0] * fuse.UNIT / 2       # log P + a constant
+        d, h = float(dead[0]) * fuse.UNIT, float(home[0]) * fuse.UNIT
+        exact = {D: log_sigmoid(d), H: log_sigmoid(-d) + log_sigmoid(h),
+                 A: log_sigmoid(-d) + log_sigmoid(-h)}
+        for state in (H, A):
+            assert abs((half[state] - half[D]) - (exact[state] - exact[D])) < 1e-3
+
+
+def test_no_evidence_ties_and_team_confidence_no_longer_buys_alive():
+    tie = viterbi.emissions(np.array([PRIOR]), np.array([0]))[0]
+    assert tie[H] == tie[A] == tie[D]                 # P(dead) = 1/3 and nothing else known
+    home = np.array([fuse.nats_to_units(x) for x in (0.5, 2.0, 10.0, 50.0)])
+    scores = viterbi.emissions(np.full(4, PRIOR), home)
+    push = scores[:, H] - scores[:, D]                # what knowing the team adds to H over D
+    assert (push > 0).all() and (np.diff(push) >= 0).all()
+    assert push[-1] == viterbi.softplus_table()[0] * viterbi.NORM_STEP    # at most 2 log 2
+
+
+def test_softplus_table():
+    table = viterbi.softplus_table()
+    assert table[0] == round(2000 * math.log(2)) and table[-1] == 0
+    assert (np.diff(table) <= 0).all()
 
 
 def test_decode_answers_x_outside_the_halves_and_is_reproducible():
