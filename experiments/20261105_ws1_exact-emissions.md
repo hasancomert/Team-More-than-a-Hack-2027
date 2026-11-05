@@ -3,7 +3,7 @@ date: 2026-11-05
 package: ws1
 name: exact-emissions
 author: Claude Code (WS1), run by Hasan
-commit: aa837206b1cc
+commit: aa83720df95c
 config: configs/pipeline.toml
 public_spell_f1: 0.4000
 public_spell_low: 0.26
