@@ -128,10 +128,10 @@ git checkout -b ws2/first-evidence        # your package and a short topic
         - The self-check stays a check: it never chooses a value (D016). Its touches also come
           from the same signal as the nearest-player evidence, so it favours costs that follow
           the evidence closely.
-    - In review: exact emissions in the combiner, so that a confident `p_home` no longer
-      pushes against D (found by WS4;
+    - Done: exact emissions in the combiner, so that a confident `p_home` no longer pushes
+      against D (found by WS4;
       [experiments/20261105_ws1_exact-emissions.md](experiments/20261105_ws1_exact-emissions.md)).
-      The team leader runs the pipeline once before it merges.
+      With the nearest-player evidence alone, the match-wide statistics did not change.
     - Joint score report 1 on 5 November.
     - The technical document says how the team used Claude Code: aggregate output only, never
       data (D008, D017).

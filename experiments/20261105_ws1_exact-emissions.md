@@ -3,16 +3,16 @@ date: 2026-11-05
 package: ws1
 name: exact-emissions
 author: Claude Code (WS1), run by Hasan
-commit:
+commit: aa837206b1cc
 config: configs/pipeline.toml
-public_spell_f1:
-public_spell_low:
-public_spell_high:
-public_macro_f1:
-n_possessions:
-mean_duration_s:
-d_rate:
-verdict: open
+public_spell_f1: 0.4000
+public_spell_low: 0.26
+public_spell_high: 0.54
+public_macro_f1: 0.6285
+n_possessions: 368
+mean_duration_s: 11.7
+d_rate: 0.323
+verdict: adopted
 ---
 
 ## What changed
@@ -51,13 +51,18 @@ Both values follow from the model's definition, not from this match (CLAUDE.md, 
 
 ## Result
 
-TO DO (team leader, on the data): run `python -m saha.pipeline`, then fill in the front matter.
-These numbers are checks only:
+The team leader ran `python -m saha.pipeline` on PR #8's branch at aa83720, on 5 November.
+Every number below is a check only:
 
-- the pipeline validates;
-- the possession count, mean duration and D rate stay close to 368, 11.7 s and 32.3%.
+- **Validation:** the pipeline validates. SAHA.csv has SHA256 `9fedd7df2bbd4fa9…`.
+- **Match-wide statistics:** 368 possessions, mean 11.7 s, median 8.2 s, none shorter than
+  2 s, D 32.3%, home share 57.5%. These are the same as before at this precision, as expected:
+  with the nearest-player evidence alone, no decision moved enough to show.
+- **Public 5 minutes,** as a pipeline check: spellF1 0.4000 [0.26-0.54], macroF1 0.6285, and
+  19 possessions predicted against 17.
 
 ## Decision
 
-Open until the run. Adopt if the pipeline validates and the match-wide statistics show no
-breakage. The public score does not decide (CLAUDE.md, rule 2).
+Adopted. The pipeline validates and the match-wide statistics did not change, so nothing broke.
+The fix starts to matter once WS2, WS3 and WS4 deliver confident evidence. The public score did
+not decide (CLAUDE.md, rule 2).
