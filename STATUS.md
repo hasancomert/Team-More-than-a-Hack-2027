@@ -6,12 +6,14 @@ it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 
 ## Read first: the organizers' rules on training and tuning (5 November)
 
-The organizers sent the rules on what is and is not allowed. The full text and what it changes
-are in DECISIONS D016; CLAUDE.md rules 1 and 2 follow it. In short:
+The organizers sent the rules on what is and is not allowed, then answered our questions. They
+add no detail, but they say that "anything that is not explicitly allowed is not permitted". The
+full text and what it changes are in DECISIONS D016 and D017; CLAUDE.md rules 1 and 2 follow
+them. In short:
 
-- Train, fit, calibrate and tune on **external data only**. Until the organizers answer our
-  questions, that rules out this match's tracking and tags too: no fitting on them,
-  self-supervised included.
+- Train, fit, calibrate and tune on **external data only**. That rules out this match's
+  tracking and tags too: no fitting on them, self-supervised included, and no value estimated
+  from this match on every run.
 - Never check our output against the video. Watching the video to understand what counts as
   possession is allowed.
 - Automatic checks on this match's data are allowed. They catch errors; they never choose a
@@ -105,7 +107,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
       still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
-    - Send the organizers our questions on D016, and record their answer in DECISIONS.md.
+    - Decide whether members may still show aggregate statistics to Claude Code (D017). Until
+      then, D008 stands.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
 - **WS1:**
@@ -158,13 +161,12 @@ WS2 (with Claude Code, if you use it) works through this list:
       versions; and checking output against the video is not allowed. Re-decide it by football
       reasoning or on WS5's external data, and rewrite that part of the text to say how.
     - The whistle frequency bands were measured by hand on this match's audio. Take a generic
-      whistle band from outside this match. Estimating the tones from this match's audio may
-      count as calibrating on the provided video (D016), so wait for the organizers' answer
-      before trying it.
+      whistle band from outside this match. Estimating the tones from this match's audio would
+      be calibrating on the provided video, which is not allowed (D016, D017).
     - The dead-ball classifier is trained on labels that rules make from this match's tracking,
       and the team-shape model is fitted on this match too. Training uses external data only
-      (D016): train them on WS5's data, replace them with rules whose constants come from
-      reasoning, or wait for the organizers' answer.
+      (D016, D017): train them on WS5's data, or replace them with rules whose constants come
+      from reasoning.
 6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
    ffmpeg on every machine that reproduces the submission. Bring it to the team together with
    a determinism check: the same whistle times on two machines. Until then, the rest must work

@@ -120,3 +120,25 @@ come here (CLAUDE.md).
       count as calibrating on the provided video.
     - Intermediate files may go to the organizers if they ask for them. The public repository
       still holds no match data (D008, CLAUDE.md rule 3).
+- **D017 (the organizers' answer, 5 November) The strict reading of D016 is final.** We asked
+  the organizers four questions:
+    - self-supervised fitting on this match's tracking;
+    - label-free checks that choose a parameter;
+    - estimating the whistle from this match's audio;
+    - showing aggregate statistics to an AI coding assistant.
+
+  They gave no further detail and repeated the rules. They added: "Each team is responsible for
+  making sure that its particular project, tool, platform or dataset complies with the
+  competition rules. As a reference, anything that is not explicitly allowed is not permitted."
+  So:
+    - Nothing is trained, fitted, calibrated or tuned on any of this match's data: tracking,
+      tags, video or ground truth. That includes self-supervised models, and values that an
+      algorithm estimates from this match on every run (a tag's meaning, a lag, a whistle
+      frequency).
+    - Values come from WS5's external data, or from football and physics reasoning. A reasoned
+      value is never adjusted to this match's output.
+    - This match's data is used only as input, for automatic checks, and to understand what
+      counts as possession.
+    - The answer does not address aggregate statistics shown to an AI assistant. D008 stays in
+      force: no data and no frame-level derivative ever reaches an LLM. The team leader decides
+      whether aggregates may still be shown (STATUS.md).

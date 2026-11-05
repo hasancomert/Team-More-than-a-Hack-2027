@@ -30,12 +30,16 @@ Before working on a package, read its open items in STATUS.md; they come first.
 
    The published graded-half boundaries are the only exception. Watching the video or exploring
    the data to understand what counts as possession is allowed.
-2. **Train and tune on external data only.** These are the organizers' rules (DECISIONS D016).
-    - Any training, fitting or calibration uses external data only, never this match's ground
-      truth or video. Until the organizers answer our questions, this match's tracking and tags
-      are out too, self-supervised fitting included.
+2. **Train and tune on external data only.** These are the organizers' rules (DECISIONS D016,
+   D017). They add: "anything that is not explicitly allowed is not permitted". When in doubt,
+   ask the team leader first.
+    - Any training, fitting or calibration uses external data only. Nothing is fitted on any of
+      this match's data, its tracking and tags included. That means no self-supervised models,
+      and no value that an algorithm estimates from this match on every run (a tag's meaning, a
+      time lag, a whistle frequency).
     - Every tuned parameter is tuned on external data (WS5). A value may also come from football
-      or physics reasoning, with no fitting at all.
+      or physics reasoning, with no fitting at all. It is never adjusted after looking at this
+      match's output.
     - Automatic checks on this match's data are allowed, such as the self-check and the
       match-wide statistics. They catch errors; they never choose a value.
     - The public 5 minutes are the only ground truth for this match. Use them only to check that
