@@ -104,8 +104,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
-      still open (TEAM.md).
+    - Name the remaining owners: WS3 and WS5 are still open (TEAM.md). Without WS5 nothing
+      can be tuned (D017).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
@@ -128,6 +128,10 @@ git checkout -b ws2/first-evidence        # your package and a short topic
         - The self-check stays a check: it never chooses a value (D016). Its touches also come
           from the same signal as the nearest-player evidence, so it favours costs that follow
           the evidence closely.
+    - Done: exact emissions in the combiner, so that a confident `p_home` no longer pushes
+      against D (found by WS4;
+      [experiments/20261105_ws1_exact-emissions.md](experiments/20261105_ws1_exact-emissions.md)).
+      With the nearest-player evidence alone, the match-wide statistics did not change.
     - Joint score report 1 on 5 November.
     - The technical document says how the team used Claude Code: aggregate output only, never
       data (D008, D017).

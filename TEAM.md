@@ -65,8 +65,8 @@ Every new shell: `cd` into the repository and activate the environment again
 |---|---|
 | WS1 infrastructure and integration | Hasan (team leader) |
 | WS2 dead ball | Alparslan |
-| WS3 possession while the ball is tracked | Baki or _TBD_ (Baki takes WS3 or WS4) |
-| WS4 possession while the ball is missing | Baki or _TBD_ |
+| WS3 possession while the ball is tracked | _TBD_ |
+| WS4 possession while the ball is missing | Baki |
 | WS5 external data and independent validation | _TBD_ |
 
 Each package writes one evidence file (interface in CLAUDE.md) from `saha/<package>/build.py`.
@@ -160,7 +160,7 @@ pieces fit together without negotiation:
       in play. That split uses the public ground truth: it helps to understand the data, but it
       is never a threshold (D016).
 
-### WS3: possession while the ball is tracked (owner: Baki or _TBD_)
+### WS3: possession while the ball is tracked (owner: _TBD_)
 
 - **Goal.** `p_home` on frames where the ball is visible, and the exact frame where possession
   changes.
@@ -186,7 +186,7 @@ pieces fit together without negotiation:
         - Its speed from positions has a median of 5.1 m/s and a 90th percentile of 14 m/s.
         - A player is within 1.5 m of the ball on 42% of these frames.
 
-### WS4: possession while the ball is missing (owner: Baki or _TBD_)
+### WS4: possession while the ball is missing (owner: Baki)
 
 The ball is missing on **41% of graded frames**.
 

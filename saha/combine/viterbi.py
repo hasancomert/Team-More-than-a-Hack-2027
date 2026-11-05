@@ -1,10 +1,16 @@
 """Three-state Viterbi over H, A, D with switching costs, in exact integer arithmetic.
 
-Per-frame scores (doubled, so that no division is needed):
+Per-frame scores are doubled log-probabilities, so that no division is needed. The fused tracks
+are dead = log P(D) / P(alive) and home = log P(H | alive) / P(A | alive), and the scores are
 
-    D:  +dead          H:  -dead + home          A:  -dead - home
+    D:  +dead          H:  -dead + home - n          A:  -dead - home - n
 
-which is twice the log-probability of each state under the fused log-odds, up to a constant.
+with n = 2 log(2 cosh(home / 2)) = |home| + 2 log(1 + exp(-|home|)). That is twice the
+log-probability of each state, up to a constant shared by all three. The term n makes H and A
+share the alive mass. Without it, a confident p_home would also push the alive states against D
+(found by WS4, PR #7). n comes from a table in milli-nats, like the fusion's logits, so the scores
+stay exact integers on every machine.
+
 Changing state costs:
 
     H <-> A          cost_switch      a possession change
@@ -16,16 +22,39 @@ happens where the evidence for it, summed over the frames it covers, outweighs i
 break deterministically: stay in the current state first, then the lower code (H < A < D).
 """
 
+import functools
+import math
+
 import numpy as np
 
 from saha.common.constants import A, D, H
 
+NORM_STEP = 10 ** 7     # integer units per milli-nat (the fused tracks count 1e-10 nats)
+NORM_MAX = 10_000       # milli-nats; 2 log(1 + exp(-x)) rounds to 0 milli-nats long before 10 nats
+
+
+@functools.lru_cache(maxsize=1)
+def softplus_table():
+    """int64[NORM_MAX + 1]: round(1000 * 2 log(1 + exp(-k / 1000))), in milli-nats."""
+    table = np.empty(NORM_MAX + 1, dtype=np.int64)
+    for k in range(NORM_MAX + 1):
+        table[k] = int(round(2000.0 * math.log1p(math.exp(-k / 1000.0))))
+    return table
+
+
+def normaliser(home):
+    """(T,) int64: n = 2 log(2 cosh(home / 2)) in units, |home| plus the tabulated softplus."""
+    magnitude = np.abs(home)
+    k = np.minimum((magnitude + NORM_STEP // 2) // NORM_STEP, NORM_MAX)
+    return magnitude + softplus_table()[k] * NORM_STEP
+
 
 def emissions(dead, home):
     """(T, 3) int64 doubled scores for H, A, D, from fused int64 tracks."""
+    norm = normaliser(home)
     scores = np.empty((len(dead), 3), dtype=np.int64)
-    scores[:, H] = -dead + home
-    scores[:, A] = -dead - home
+    scores[:, H] = -dead + home - norm
+    scores[:, A] = -dead - home - norm
     scores[:, D] = dead
     return scores
 
