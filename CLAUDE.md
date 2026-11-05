@@ -22,15 +22,30 @@ Before working on a package, read its open items in STATUS.md; they come first.
 ## Hard rules
 
 1. **Labels come from an algorithm only.** These are forbidden:
-    - hand labels
+    - hand labels, and any other data made by hand on this match (times read off the video,
+      measurements taken by hand from its audio, and so on)
     - hand-corrected outputs
+    - checking our output against the video
     - rules or constants tied to specific frames of this match
 
-   The published graded-half boundaries are the only exception.
-2. **The only ground truth for this match is the public 5 minutes.** Use it only to check that
-   the pipeline is correct. Never use it to train, tune, or choose between two versions. Labelled
-   open data from *other* matches is fine (WS5). It must be public, and the technical document
-   must explain it.
+   The published graded-half boundaries are the only exception. Watching the video or exploring
+   the data to understand what counts as possession is allowed.
+2. **Train and tune on external data only.** These are the organizers' rules (DECISIONS D016,
+   D017). They add: "anything that is not explicitly allowed is not permitted". When in doubt,
+   ask the team leader first.
+    - Any training, fitting or calibration uses external data only. Nothing is fitted on any of
+      this match's data, its tracking and tags included. That means no self-supervised models,
+      and no value that an algorithm estimates from this match on every run (a tag's meaning, a
+      time lag, a whistle frequency).
+    - Every tuned parameter is tuned on external data (WS5). A value may also come from football
+      or physics reasoning, with no fitting at all. It is never adjusted after looking at this
+      match's output.
+    - Automatic checks on this match's data are allowed, such as the self-check and the
+      match-wide statistics. They catch errors; they never choose a value.
+    - The public 5 minutes are the only ground truth for this match. Use them only to check that
+      the pipeline is correct, never to choose between two versions.
+    - External data must be public and we must have the right to use it: check its licence. The
+      technical document explains it.
 3. **The match data never leaves members' machines.** This covers the data itself and anything
    derived from it frame by frame: tracking, tags, homography, video, frame tables, evidence
    files, caches, per-frame CSVs.
@@ -167,12 +182,12 @@ After every significant change:
 2. Run `python -m saha.common.experiments new <ws> <short-name>`.
 3. Fill in what changed, why, the result and the decision. Commit the record with the change.
 
-Never merge a change only because the public score went up. Choose parameters from:
+The public score never decides anything (rule 2). Parameters come from:
 
-- football and physics reasoning
-- match-wide consistency (possession count, durations, D rate)
-- bootstrap intervals
-- WS5's external validation set
+- WS5's external data, where they are tuned
+- football and physics reasoning, with no fitting
+
+Match-wide statistics, the self-check and the public score only catch errors.
 
 ## Determinism
 
@@ -192,7 +207,7 @@ python -m saha.common.frame_table           # build/check the shared frame table
 python -m saha.<package>.build              # one evidence file
 python -m saha.common.evidence              # validate every evidence file
 python -m saha.common.experiments           # every experiment in one table
-python -m saha.tools.selfcheck              # combiner settings, label-free (after a pipeline run)
+python -m saha.tools.selfcheck              # label-free combiner check (after a pipeline run)
 python -m pytest                            # tests (synthetic data only)
 python evaluation/validate_submission.py submissions/SAHA.csv
 python evaluation/run_evaluation.py --bootstrap 1000

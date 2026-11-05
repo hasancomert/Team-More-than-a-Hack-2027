@@ -1,8 +1,24 @@
 # Status
 
-Updated **4 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
+Updated **5 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
 it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 [CLAUDE.md](CLAUDE.md).
+
+## Read first: the organizers' rules on training and tuning (5 November)
+
+The organizers sent the rules on what is and is not allowed, then answered our questions. They
+add no detail, but they say that "anything that is not explicitly allowed is not permitted". The
+full text and what it changes are in DECISIONS D016 and D017; CLAUDE.md rules 1 and 2 follow
+them. In short:
+
+- Train, fit, calibrate and tune on **external data only**. That rules out this match's
+  tracking and tags too: no fitting on them, self-supervised included, and no value estimated
+  from this match on every run.
+- Never check our output against the video. Watching the video to understand what counts as
+  possession is allowed.
+- Automatic checks on this match's data are allowed. They catch errors; they never choose a
+  value.
+- Never upload the data to AI services (D008 already).
 
 ## Where we are: Phase 0 is done
 
@@ -97,21 +113,24 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Done, on the data (4 November): the players' speed is in m/s (D012). The ball's speed
       channel is not, so the ball's speed now comes from its positions (D015,
       `saha.common.kinematics`).
-    - Done: the first self-check run,
-      [experiments/20261104_ws1_cost-switch-sweep-1.md](experiments/20261104_ws1_cost-switch-sweep-1.md).
-      It was inconclusive. It found only 109 touches, and the lower costs that recover more of
-      them invent hundreds of short possessions. `cost_switch` stays at 35.
-    - Waiting on a run on the data (team leader), now that touches come from the ball's
-      positions:
-        - `python -m saha.tools.data_checks --speed`
-        - `python -m saha.tools.selfcheck`
+    - Done: the self-check, with its touches found from the ball's positions
+      ([sweep 2](experiments/20261104_ws1_cost-switch-sweep-2.md)).
+        - It finds 942 touches, so each recovered share is good to about ±0.01. The first
+          sweep had only 109.
+        - Lower costs recover a few more touches, but only by inventing many short
+          possessions.
+        - `cost_switch` stays at 35. At 35 nats, the decoder recovers 89% of the withheld
+          touches.
     - Then: let the combiner keep the short possessions that strong evidence supports. Today
       none shorter than 2 s survives.
         - Stronger evidence from WS3 matters more here than a lower cost.
-        - The costs are chosen from WS5's external data and from match-wide consistency.
-        - The self-check stays a sanity check. Its touches come from the same signal as the
-          nearest-player evidence, so it favours costs that follow the evidence closely.
+        - The costs are tuned on WS5's external data only (D016).
+        - The self-check stays a check: it never chooses a value (D016). Its touches also come
+          from the same signal as the nearest-player evidence, so it favours costs that follow
+          the evidence closely.
     - Joint score report 1 on 5 November.
+    - The technical document says how the team used Claude Code: aggregate output only, never
+      data (D008, D017).
 
 ## WS2: bringing `ws2/event-deadball` into the shared structure
 
@@ -135,15 +154,19 @@ WS2 (with Claude Code, if you use it) works through this list:
 4. **Agree with WS3/WS4 first.** The formation model and the ball-control signal answer WS3's
    and WS4's questions. Agree with their owners before shipping them, and keep the TEAM.md
    boundaries.
-5. **Two rule fixes, required before any merge** (RULES.md, CLAUDE.md rules 1–2, D009):
+5. **Three rule fixes, required before any merge** (CLAUDE.md rules 1–2, D009, D016):
     - The hard-hold versus soft-hold choice was made by comparing versions on the public
       window and on restart times read off the video. Both are out: no hand labels on this
-      match for any purpose, validation included, and the public window never chooses between
-      two versions. Re-decide it by football reasoning, by the self-supervised test, or on
-      WS5's external data. Rewrite that part of the text to say how it was decided.
-    - The whistle frequency bands were measured by hand on this match's audio. Find the
-      whistle's two tones automatically, or take a generic whistle band from outside this
-      match, so that no constant comes from inspecting this game.
+      match for any purpose, validation included; the public window never chooses between two
+      versions; and checking output against the video is not allowed. Re-decide it by football
+      reasoning or on WS5's external data, and rewrite that part of the text to say how.
+    - The whistle frequency bands were measured by hand on this match's audio. Take a generic
+      whistle band from outside this match. Estimating the tones from this match's audio would
+      be calibrating on the provided video, which is not allowed (D016, D017).
+    - The dead-ball classifier is trained on labels that rules make from this match's tracking,
+      and the team-shape model is fitted on this match too. Training uses external data only
+      (D016, D017): train them on WS5's data, or replace them with rules whose constants come
+      from reasoning.
 6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
    ffmpeg on every machine that reproduces the submission. Bring it to the team together with
    a determinism check: the same whistle times on two machines. Until then, the rest must work

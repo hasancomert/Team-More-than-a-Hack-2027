@@ -40,13 +40,15 @@ TEMPLATE = """---
 
 ## Why
 
-<!-- The football or physics reason. A better public score is not a reason (CLAUDE.md). -->
+<!-- The football or physics reason, or the result on WS5's external data. Parameters are tuned
+on external data only; the public score never chooses (DECISIONS D016). -->
 
 ## Result
 
-<!-- Public spellF1 with its bootstrap interval, match-wide possession count, mean duration and
-D rate, and how they moved against the previous adopted version. Gaps below ~0.04 on the full
-match, or inside overlapping intervals, are noise. Add WS5 external results when available. -->
+<!-- WS5 external results first, when they exist. Then, as checks only: public spellF1 with its
+bootstrap interval, match-wide possession count, mean duration and D rate, against the previous
+adopted version. On the full match, gaps below ~0.04 or inside overlapping intervals are
+noise. -->
 
 ## Decision
 

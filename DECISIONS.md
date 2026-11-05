@@ -90,3 +90,58 @@ come here (CLAUDE.md).
       nearest-player evidence.
     - The frame table keeps the channel as delivered (`ball_speed`), for diagnostics only.
       `python -m saha.tools.data_checks --speed` describes it.
+
+## 2026-11-05
+
+- **D016 (the organizers' rules, received 5 November) Train and tune on external data only.**
+  The organizers wrote:
+    - Not allowed: checking the output against the video; hand labels, human-produced data or
+      any other data created manually on the provided game; uploading the provided data to AI
+      services; training, fitting or calibrating on the ground-truth possession data or on the
+      provided video.
+    - Allowed: automatic checks using only the provided data; inspecting the provided data and
+      the video to better understand what counts as possession; the video, the tracking, the
+      Smart Tagging and other generated data as inputs, as long as nothing was trained on the
+      ground truth or on the provided video; providing files of intermediate steps; any dataset
+      we have the rights to use, after checking its licence.
+    - Training and tuning: any training uses external data only, and parameters that need
+      tuning are tuned on external data, never on the ground truth or the provided video.
+
+  What it changes for us (CLAUDE.md rules 1 and 2 follow it):
+    - "External data only" can be read as "nothing from this match". Until the organizers
+      answer our questions, we read it that way: no training or fitting on this match's tracking
+      or tags either, self-supervised included.
+    - The self-check and the match-wide statistics are checks. They catch errors; they never
+      choose a value. Neither does the public score, nor its bootstrap interval.
+    - WS2's prototype fits two models on this match: the dead-ball classifier, trained on labels
+      that rules make from the tracking, and the team-shape model. Both need external training
+      data, rules with reasoned constants, or the organizers' approval (STATUS.md).
+    - The whistle band comes from outside this match. Estimating it from this match's audio may
+      count as calibrating on the provided video.
+    - Intermediate files may go to the organizers if they ask for them. The public repository
+      still holds no match data (D008, CLAUDE.md rule 3).
+- **D017 (the organizers' answer, 5 November) The strict reading of D016 is final.** We asked
+  the organizers four questions:
+    - self-supervised fitting on this match's tracking;
+    - label-free checks that choose a parameter;
+    - estimating the whistle from this match's audio;
+    - showing aggregate statistics to an AI coding assistant.
+
+  They gave no further detail and repeated the rules. They added: "Each team is responsible for
+  making sure that its particular project, tool, platform or dataset complies with the
+  competition rules. As a reference, anything that is not explicitly allowed is not permitted."
+  So:
+    - Nothing is trained, fitted, calibrated or tuned on any of this match's data: tracking,
+      tags, video or ground truth. That includes self-supervised models, and values that an
+      algorithm estimates from this match on every run (a tag's meaning, a lag, a whistle
+      frequency).
+    - Values come from WS5's external data, or from football and physics reasoning. A reasoned
+      value is never adjusted to this match's output.
+    - This match's data is used only as input, for automatic checks, and to understand what
+      counts as possession.
+    - The answer does not address aggregate statistics shown to an AI assistant. The team leader
+      decided on 5 November to keep D008 as it is:
+        - Members may show Claude Code aggregate output only: counts, percentages, percentiles
+          and scores.
+        - No data and no frame-level derivative ever reaches an LLM.
+        - The technical document says so.

@@ -33,7 +33,7 @@ Of graded frames with a visible ball, 4.19% place it outside the 0–1 pitch and
 
 ## Player speed when the ball is dead
 
-Per-frame mean speed of tracked players (m/s), public window split by the public ground truth:
+Per-frame mean speed of tracked players (m/s), public window split by the public ground truth. It helps to understand the data, but it is never a threshold or a parameter (DECISIONS D016):
 
 | | frames | median | p10 | p90 | ball visible |
 |---|---|---|---|---|---|
