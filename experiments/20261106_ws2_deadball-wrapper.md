@@ -3,7 +3,7 @@ date: 2026-11-06
 package: ws2
 name: deadball-wrapper
 author: Claude Code (WS2), run by Alparslan
-commit: b64b5bf38476
+commit: 35683cb
 config: configs/pipeline.toml
 public_spell_f1: 0.4848
 public_spell_low: 0.315
