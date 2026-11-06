@@ -3,15 +3,15 @@ date: 2026-11-06
 package: ws5
 name: dfl-first-harness
 author: Claude Code (WS5), run by planckestein
-commit:
+commit: e425ef7
 config: configs/pipeline.toml
-public_spell_f1:
-public_spell_low:
-public_spell_high:
-public_macro_f1:
-n_possessions:
-mean_duration_s:
-d_rate:
+public_spell_f1: 0.4000
+public_spell_low: 0.26
+public_spell_high: 0.54
+public_macro_f1: 0.6285
+n_possessions: 368
+mean_duration_s: 11.7
+d_rate: 0.323
 verdict: open
 ---
 
@@ -27,8 +27,10 @@ First WS5 delivery, `saha/external/`:
   with `saha.combine`, score with the official metric; `--sweep` over combine parameters.
 - `build.py`: the definition check, external label statistics next to the public 5 minutes.
 
-No change to the submission. The public-window fields above are empty because this machine
-does not have the match data yet; WS5 changes nothing that the pipeline runs.
+No change to the submission: WS5 changes nothing that the pipeline runs. The pipeline on this
+machine (a second member's clean install) gives the same match-wide numbers and public score as
+WS1's runs (368 possessions, mean 11.7 s, D 32.3%, public spellF1 0.4000), with SAHA.csv sha256
+9fedd7df2bbd...; WS1 can compare that hash for the reproduction check.
 
 ## Why
 
