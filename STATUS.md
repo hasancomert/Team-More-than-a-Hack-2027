@@ -184,11 +184,15 @@ merged. WS2 (with Claude Code, if you use it) works through this list.
    correlation time.
 5. **Dependencies.** Add `scikit-learn==1.9.1` to `requirements-saha.txt` in the same PR
    (D014).
-6. **The model file.** `possession/models/dead_skillcorner.pkl` is 3.3 MB. The guard refuses
-   `.pkl` files and anything over 500 KB, so it cannot be merged as it is.
-    - Until the team leader decides on the proposal below, keep the model out of the PR and the
-      training script in it.
-    - Keep the model loadable from a local path.
+6. **The model file.** Commit it as `saha/deadball/models/dead_skillcorner.pkl` (3.3 MB), with
+   its manifest `dead_skillcorner.pkl.json` next to it (D020). The manifest holds:
+    - `training_script`: the script in the repository that rebuilds the model from the external
+      data;
+    - `data` and `licence`: the 20 SkillCorner matches and their licence;
+    - `seed`, and `libraries` (the Python, scikit-learn and numpy versions);
+    - `sha256`: the SHA256 of the model file.
+
+   The guard checks the manifest on every commit and in CI.
 7. **One external set, with WS5.** WS2's IDSSE (DFL) and SkillCorner loaders overlap with
    `saha/external` (Seyyid).
     - Use WS5's DFL reader.
@@ -204,19 +208,3 @@ merged. WS2 (with Claude Code, if you use it) works through this list.
 9. **Move the documentation.** `TECHNICAL.md` becomes `docs/tech/ws2_deadball.md`. Say where
    each number comes from: external data, the laws of the game, or reasoning. WS1 assembles
    `SAHA.md` from the package sections.
-
-### Proposal from WS1: model files trained on external data
-
-The guard keeps match data out of git by file type and size. A model trained only on external
-open data is not match data, but it is still a binary file. WS1 proposes this rule:
-
-- Such a model may be committed under `saha/<package>/models/`, up to 5 MB.
-- Next to it goes a manifest:
-    - the training script;
-    - the external data and its licence;
-    - the seed and the library versions;
-    - the file's SHA256.
-- The training script in the repository rebuilds the model from the external data.
-- The guard allows exactly that path and that size, and nothing else.
-
-The team leader decides. WS1 then adds the exception to the guard, and DECISIONS.md records it.
