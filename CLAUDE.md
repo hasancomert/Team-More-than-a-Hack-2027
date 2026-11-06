@@ -167,8 +167,8 @@ exactly 199,319 rows and exactly these columns:
     3. an experiment record
 - The hooks block the following (`python -m saha.tools.setup_dev` installs them, CI re-checks):
     - `data/`, `cache/`, `submissions/`
-    - data-dump formats
-    - files over 500 KB
+    - data-dump formats and files over 500 KB, except a model trained only on external data
+      under `saha/<package>/models/` (up to 5 MB, with its manifest: DECISIONS D020)
     - frame-level tables
     - edits to `evaluation/` or `games.py`
     - pushes to `main`

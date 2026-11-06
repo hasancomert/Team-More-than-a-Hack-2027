@@ -104,10 +104,9 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Name the remaining owner: WS3 is still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
-- **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
-  step-by-step list is in the next section.
+- **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. It
+  made real progress on 6 November; what is left is the list in the next section.
 - **WS1:**
     - Done, on the data (4 November): the players' speed is in m/s (D012). The ball's speed
       channel is not, so the ball's speed now comes from its positions (D015,
@@ -142,40 +141,69 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 
 The branch holds a strong event-driven prototype: a dead-ball model, the referee's whistle,
 kick-off detection and an event-gated decoder. It was written before Phase 0, as a separate
-pipeline. Its ideas are worth keeping; its shape has to change before anything from it is merged.
-WS2 (with Claude Code, if you use it) works through this list:
+pipeline. Its ideas are worth keeping, but its shape has to change before anything from it is
+merged. WS2 (with Claude Code, if you use it) works through this list.
 
-1. **Start from current `main`.** Merge `main` into the branch, or open a new branch from `main`
-   and port the code.
-2. **Python 3.11 with the team pins** (D014). If scikit-learn is needed, add it to
-   `requirements-saha.txt`, pinned, in the same PR.
-3. **One pipeline.** Read the match through `saha.common` (`frame_table.load()`,
-   `smart_tagging.load()`), not `possession/data.py`. Write the result from
-   `saha/deadball/build.py` through `write_evidence`:
+### Done on 6 November (commits 0dd6df0 and 2e45c19)
+
+- **Python 3.11** with the team's pins, plus scikit-learn 1.9.1 (still in its own requirements
+  file; see item 5).
+- **The dead-ball classifier is trained on external data:** 20 open SkillCorner matches. Its
+  decoder settings are chosen on held-out external matches, and so is the choice to hold a
+  stoppage after whistles only. Nothing about the dead-ball model is fitted on this match any
+  more (D016, D017).
+- **The public window is a sanity check only.** The earlier comparisons on the public window
+  and on restart times read off the video no longer decide anything.
+
+### Still to do, in this order
+
+1. **Replace the whistle band.** `possession/audio.py` has `BAND_LOW = (3700, 3960)` and
+   `BAND_HIGH = (4180, 4400)` Hz, measured on this match's audio. Its detection threshold was
+   also read from this match's score distribution. Both are data made by hand on this match
+   and a calibration on the provided video, so the rules forbid them (CLAUDE.md rule 1, D016,
+   D017).
+    - Take the band and the threshold from published referee-whistle measurements, or from
+      external recordings, and cite the source.
+    - Never check them against this match.
+2. **Take the formation model out of WS2.** It is trained on pseudo-labels from this match's
+   tracking. Its correlation time is estimated on this match, and its weight is chosen by a
+   test on this match. All of that is fitting on this match (D017).
+    - Who has the ball is WS3's and WS4's question anyway (TEAM.md, boundaries).
+    - If the model is worth keeping, it moves to WS3 or WS4, trained on WS5's external data.
+3. **Start from current `main`.** Open a new branch from `main` (for example
+   `ws2/deadball-evidence`) and port the code there. Do not merge `main` into the old branch.
+4. **One pipeline.** Read the match through `saha.common` (`frame_table.load()`,
+   `smart_tagging.load()`, `kinematics`). Write the result from `saha/deadball/build.py`
+   through `write_evidence`:
     - `p_dead` on every frame you can judge;
     - `p_home` only inside restart windows (TEAM.md, boundaries).
 
-   Drop the second entry point (`run.py`) and the second decoder. The decoder ideas (event
-   gating, autocorrelation discounting) go into WS1's combiner, in a separate PR with WS1.
-4. **Agree with WS3/WS4 first.** The formation model and the ball-control signal answer WS3's
-   and WS4's questions. Agree with their owners before shipping them, and keep the TEAM.md
-   boundaries.
-5. **Three rule fixes, required before any merge** (CLAUDE.md rules 1–2, D009, D016):
-    - The hard-hold versus soft-hold choice was made by comparing versions on the public
-      window and on restart times read off the video. Both are out: no hand labels on this
-      match for any purpose, validation included; the public window never chooses between two
-      versions; and checking output against the video is not allowed. Re-decide it by football
-      reasoning or on WS5's external data, and rewrite that part of the text to say how.
-    - The whistle frequency bands were measured by hand on this match's audio. Take a generic
-      whistle band from outside this match. Estimating the tones from this match's audio would
-      be calibrating on the provided video, which is not allowed (D016, D017).
-    - The dead-ball classifier is trained on labels that rules make from this match's tracking,
-      and the team-shape model is fitted on this match too. Training uses external data only
-      (D016, D017): train them on WS5's data, or replace them with rules whose constants come
-      from reasoning.
-6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
-   ffmpeg on every machine that reproduces the submission. Bring it to the team together with
-   a determinism check: the same whistle times on two machines. Until then, the rest must work
-   without it.
-7. **Move the documentation.** The text in `TECHNICAL.md` goes to `docs/tech/ws2_deadball.md`.
-   WS1 assembles `SAHA.md` from the package sections.
+   Drop `run.py`, the second decoder and `requirements-solution.txt`. The decoder ideas go into
+   WS1's combiner, in a separate PR with WS1: event gating, the whistle hold, and discounting by
+   correlation time.
+5. **Dependencies.** Add `scikit-learn==1.9.1` to `requirements-saha.txt` in the same PR
+   (D014).
+6. **The model file.** Commit it as `saha/deadball/models/dead_skillcorner.pkl` (3.3 MB), with
+   its manifest `dead_skillcorner.pkl.json` next to it (D020). The manifest holds:
+    - `training_script`: the script in the repository that rebuilds the model from the external
+      data;
+    - `data` and `licence`: the 20 SkillCorner matches and their licence;
+    - `seed`, and `libraries` (the Python, scikit-learn and numpy versions);
+    - `sha256`: the SHA256 of the model file.
+
+   The guard checks the manifest on every commit and in CI.
+7. **One external set, with WS5.** WS2's IDSSE (DFL) and SkillCorner loaders overlap with
+   `saha/external` (Seyyid).
+    - Use WS5's DFL reader.
+    - Move the SkillCorner loader into `saha/external`, with its licence in
+      `docs/tech/ws5_external.md`.
+    - Score with WS5's harness.
+
+   Then the whole team tunes on one external set, with one protocol. Agree on it with Seyyid.
+8. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
+   ffmpeg on every machine that reproduces the submission. Bring it to the team together with a
+   determinism check: the same whistle times on two machines. Until then, everything else must
+   work without it.
+9. **Move the documentation.** `TECHNICAL.md` becomes `docs/tech/ws2_deadball.md`. Say where
+   each number comes from: external data, the laws of the game, or reasoning. WS1 assembles
+   `SAHA.md` from the package sections.

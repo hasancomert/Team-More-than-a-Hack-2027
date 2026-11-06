@@ -65,7 +65,7 @@ Every new shell: `cd` into the repository and activate the environment again
 |---|---|
 | WS1 infrastructure and integration | Hasan (team leader) |
 | WS2 dead ball | Alparslan |
-| WS3 possession while the ball is tracked | _TBD_ |
+| WS3 possession while the ball is tracked | Osman |
 | WS4 possession while the ball is missing | Baki |
 | WS5 external data and independent validation | Seyyid |
 
@@ -160,7 +160,7 @@ pieces fit together without negotiation:
       in play. That split uses the public ground truth: it helps to understand the data, but it
       is never a threshold (D016).
 
-### WS3: possession while the ball is tracked (owner: _TBD_)
+### WS3: possession while the ball is tracked (owner: Osman)
 
 - **Goal.** `p_home` on frames where the ball is visible, and the exact frame where possession
   changes.
