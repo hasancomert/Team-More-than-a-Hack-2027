@@ -147,3 +147,7 @@ come here (CLAUDE.md).
         - The technical document says so.
 - **D018 Owners: Baki takes WS4.** Baki opened WS4's first evidence (PR #7). WS3 and WS5 are
   still open. This replaces the open part of D013.
+
+## 2026-11-06
+
+- **D019 Owners: Seyyid takes WS5** (GitHub planckestein, PR #9). Only WS3 is still open.
