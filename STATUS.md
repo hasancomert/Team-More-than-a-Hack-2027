@@ -104,7 +104,6 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Name the remaining owner: WS3 is still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. It
   made real progress on 6 November; what is left is the list in the next section.
