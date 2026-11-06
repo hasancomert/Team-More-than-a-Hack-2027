@@ -67,7 +67,7 @@ Every new shell: `cd` into the repository and activate the environment again
 | WS2 dead ball | Alparslan |
 | WS3 possession while the ball is tracked | _TBD_ |
 | WS4 possession while the ball is missing | Baki |
-| WS5 external data and independent validation | _TBD_ |
+| WS5 external data and independent validation | Seyyid |
 
 Each package writes one evidence file (interface in CLAUDE.md) from `saha/<package>/build.py`.
 The pipeline already runs every package: today they are stubs with no opinion, so your first PR
@@ -214,7 +214,7 @@ The ball is missing on **41% of graded frames**.
       without the ball. Our tracking has no player identities and its slots break up. Train
       any such model on external data only (D016).
 
-### WS5: external data and independent validation (owner: _TBD_)
+### WS5: external data and independent validation (owner: Seyyid)
 
 - **Goal.** A labelled validation set from other matches' open data, made to look like ours.
   Parameters are chosen there, not on the 17 public possessions.

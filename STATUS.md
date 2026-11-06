@@ -96,7 +96,7 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 | 9 Nov | joint score report 2 (WS1) | |
 | 10 Nov | last day for everyone to be registered as SAHA | |
 | 12 Nov | feature freeze: FINAL_CHOICE.md with its commit hash | |
-| 13 – 15 Nov | technical document; reproduction on two machines (SHA256); public-repository preparation | |
+| 13 – 15 Nov | technical document; reproduction on two machines (SHA256); public-repository preparation | reproduction already matched once, on 6 Nov |
 | 14 Nov | the form link arrives by email | |
 | 16 Nov | submit the form | |
 | 17 Nov, 23:59 CET | deadline (Türkiye: 18 Nov, 01:59) | |
@@ -104,8 +104,7 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Name the remaining owners: WS3 and WS5 are still open (TEAM.md). Without WS5 nothing
-      can be tuned (D017).
+    - Name the remaining owner: WS3 is still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
 - **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
   step-by-step list is in the next section.
@@ -132,6 +131,9 @@ git checkout -b ws2/first-evidence        # your package and a short topic
       against D (found by WS4;
       [experiments/20261105_ws1_exact-emissions.md](experiments/20261105_ws1_exact-emissions.md)).
       With the nearest-player evidence alone, the match-wide statistics did not change.
+    - Done (6 November): the submission reproduces byte for byte on a second machine. Seyyid's
+      clean install gives the same SHA256 as the team leader's (`9fedd7df…`). The check is
+      repeated on the final version (13 – 15 November).
     - Joint score report 1 on 5 November.
     - The technical document says how the team used Claude Code: aggregate output only, never
       data (D008, D017).
