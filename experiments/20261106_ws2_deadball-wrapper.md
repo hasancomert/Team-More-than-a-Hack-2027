@@ -23,13 +23,14 @@ verdict: open
 - reads the match only through `saha.common` (frame table, Smart Tagging kick-off windows) and
   writes `p_dead` through `write_evidence`: WS2's dead/alive decision at 0.99 / 0.01, weight 20
   on graded frames; no `p_home`;
-- the dead-ball classifier is trained on SkillCorner open data (MIT) by `saha.deadball.train`,
-  on first use, into `cache/deadball/` (the guard keeps pickles out of git);
+- the dead-ball classifier, trained on SkillCorner open data (MIT) by `saha.deadball.train`, is
+  committed as `saha/deadball/models/dead_skillcorner.pkl` with its manifest (D020);
 - the team-shape model and every self-supervised part of the prototype are left out, and the
   whistle is off unless `--whistle` is given;
 - scikit-learn 1.9.1 and its dependencies are pinned in `requirements-saha.txt`;
 - `tests/conftest.py` sets `SAHA_DEADBALL_MODEL=none`, so the pipeline tests run the builder
-  without the 1.8 GB download, with no opinion as before; `tests/test_deadball.py` tests the
+  with no opinion, as before: on the synthetic match (four players) the classifier calls 96% of
+  frames dead, and the tests check that the truth comes back; `tests/test_deadball.py` tests the
   package with a stand-in classifier;
 - `docs/tech/ws2_deadball.md` holds the design, assets, training data and external results.
 
@@ -67,9 +68,10 @@ The public intervals overlap: noise, and not a reason for anything (D016). Other
 - With the same classifier file, the port and the prototype (no whistle, no team evidence) differ
   on 0 graded frames.
 - The frame table and the prototype's own tracking reader agree on every value.
-- `pipeline --fresh` (empty cache, retraining included) gave the same `SAHA.csv`, SHA256
-  `081f57c1b588…`, and the same classifier, SHA256 `0506d791b9ac…`.
-- `pytest`: 70 passed.
+- `pipeline --fresh` (empty cache) gave the same `SAHA.csv`, SHA256 `081f57c1b588…`.
+- Rebuilding the classifier gave the same file all four times, SHA256 `0506d791b9ac…`, twice from
+  a freshly converted copy of the data.
+- `pytest`: 77 passed.
 
 The DFL harness (WS5) was not run with this package. DFL freezes the ball on dead frames, so a
 dead-ball detector that reads the ball would look better there than it is (docs/tech/ws2_deadball.md).

@@ -9,8 +9,8 @@ match, 0 of 158,857 graded frames differ between `deadball`'s decision and the `
 `submissions/SAHA.csv`. WS2 writes no `p_home`.
 
 ```bash
-python -m saha.deadball.train      # once: download SkillCorner, train the classifier
-python -m saha.deadball.build      # the evidence file (~15 s); trains first if needed
+python -m saha.deadball.build      # the evidence file (~15 s)
+python -m saha.deadball.train      # only to rebuild the committed classifier from SkillCorner
 ```
 
 The decision comes from three parts:
@@ -77,10 +77,13 @@ No data of this match trains or tunes anything.
   leaves, at least 200 frames per leaf, L2 1.0), one per seed (0, 1, 2), logits averaged, the
   training prior removed so that the output acts as a likelihood ratio.
 
-The model is not committed, because the guard keeps pickles out of git, so every machine trains
-its own. Training runs on one thread, and the same SHA256 comes out every time: `0506d791…`. The
-trees are the same on 1, 4 and 12 threads; only the thread count that scikit-learn stores in the
-pickle differs.
+The model is committed as `saha/deadball/models/dead_skillcorner.pkl` (3.6 MB), with its manifest
+`dead_skillcorner.pkl.json` (DECISIONS D020): the training script, the 20 matches and the
+repository commit, the licence, the seeds, the library versions and the SHA256, `0506d791…`.
+`python -m saha.deadball.train` rebuilds it from the external data, and the same SHA256 came out
+on every rebuild, including one from a freshly converted copy of the data. Training runs on one
+thread. The trees are the same on 1, 4 and 12 threads, but scikit-learn stores the thread count
+in the pickle, so pinning it keeps the file identical.
 
 ## Possession rules (dead ball) and how each setting was chosen
 
@@ -175,15 +178,16 @@ on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the form
 ## Reproduction
 
 Python 3.11 with `requirements-saha.txt` (scikit-learn 1.9.1 and its dependencies are pinned
-there). The first build downloads SkillCorner to `cache/external/skillcorner/` (1.8 GB),
-converts it, and trains the classifier into `cache/deadball/` (about 4 minutes after the
-download). After that a build takes about 15 s. From an empty cache, the whole pipeline gave the
-same `SAHA.csv` (SHA256 `081f57c1…`) and the same classifier as a run with everything cached.
+there). The build reads the committed classifier and takes about 15 s; no external data is
+needed. From an empty cache, the whole pipeline gives the same `SAHA.csv` as a run with
+everything cached (SHA256 `081f57c1…`).
 
-- `python -m saha.pipeline --fresh` deletes `cache/`, and the download with it. Set
-  `SAHA_SKILLCORNER_DIR` to keep the download elsewhere, and `SAHA_DEADBALL_MODEL` (a file path)
-  to keep the trained classifier.
-- `SAHA_DEADBALL_MODEL=none` runs the package with no classifier and no opinion, as the Phase 0
-  stub did. The tests run that way. `tests/test_deadball.py` covers the package itself with a
-  stand-in classifier.
+- Rebuilding the classifier (`python -m saha.deadball.train`) downloads SkillCorner to
+  `cache/external/skillcorner/` (1.8 GB) and converts it, then trains in about 2 minutes. Set
+  `SAHA_SKILLCORNER_DIR` to use a copy already on disk.
+- `SAHA_DEADBALL_MODEL` names another classifier file, or `none` for no classifier and no
+  opinion, as the Phase 0 stub had. The pipeline tests run with `none`, because the synthetic
+  match's four players look dead to a classifier that learned from twenty-two (it calls 96% of
+  that match dead). `tests/test_deadball.py` tests the package with a stand-in classifier and
+  checks that the committed one loads.
 - `python -m saha.deadball.build --whistle` adds the whistle (needs ffmpeg and the video).

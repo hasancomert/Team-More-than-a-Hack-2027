@@ -17,8 +17,10 @@ def isolated_dirs(tmp_path_factory):
                                              "SAHA_DEADBALL_MODEL")}
     os.environ["SAHA_CACHE_DIR"] = str(tmp_path_factory.mktemp("cache"))
     os.environ["MTAH_DATA_DIR"] = str(tmp_path_factory.mktemp("no_data_here"))
-    # WS2's classifier is trained on 1.8 GB of external data (saha/deadball/train.py), so the
-    # pipeline tests run its builder without one, with no opinion; tests/test_deadball.py tests it.
+    # WS2's classifier learned from real matches with twenty-two players; on the synthetic match
+    # (four players) it calls almost every frame dead, and its decision outweighs the rest. So
+    # the pipeline tests run WS2's builder without it, with no opinion; tests/test_deadball.py
+    # tests the package.
     os.environ["SAHA_DEADBALL_MODEL"] = "none"
     yield
     for key, value in saved.items():

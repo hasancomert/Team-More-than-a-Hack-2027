@@ -57,7 +57,6 @@ def oracle(monkeypatch, tmp_path):
     OracleModel.truth = truth
     monkeypatch.setenv(dead.MODEL_ENV, str(tmp_path / "unused.pkl"))
     monkeypatch.setattr(segment, "ExternalDeadModel", OracleModel)
-    monkeypatch.setattr(build.train, "ensure_model", lambda: None)
     return table, truth
 
 
@@ -103,3 +102,8 @@ def test_no_classifier_means_no_opinion(monkeypatch):
     table, _ = toy_table()
     p_dead, p_home, weight = build.build(table)
     assert np.isnan(p_dead).all() and np.isnan(p_home).all() and (weight == 0).all()
+
+
+def test_committed_model_loads():
+    model = dead.ExternalDeadModel(dead.MODEL_FILE)
+    assert model.n_features == 79 and len(model.models) == 3

@@ -23,8 +23,6 @@ from pathlib import Path
 
 import numpy as np
 
-from saha.common import paths
-
 from .features import FPS, central_diff, nearest_by_team, rolling_count, rolling_nanmean, to_metres
 
 OOB_MARGIN = 0.5        # metres past a line before the ball counts as out
@@ -36,8 +34,10 @@ CAP_S = 30.0            # cap on time-since/time-until features, seconds
 EXTERNAL_TAU = 204.0
 EXTERNAL_WEIGHT = 32.0
 
-# Where the classifier lives: a file path, or "none" for no classifier at all (build.py then has
-# no opinion, as the Phase 0 stub had; the tests run that way). Unset: cache/deadball/.
+# The classifier, committed next to its manifest (DECISIONS D020). SAHA_DEADBALL_MODEL may name
+# another file, or be "none" for no classifier at all (build.py then has no opinion, as the
+# Phase 0 stub had).
+MODEL_FILE = Path(__file__).resolve().parent / "models" / "dead_skillcorner.pkl"
 MODEL_ENV = "SAHA_DEADBALL_MODEL"
 
 
@@ -46,11 +46,11 @@ def model_disabled():
 
 
 def model_path():
-    """Where train.py writes the classifier: under cache/, like everything derived from data."""
+    """Where the classifier is read from, and where train.py writes it."""
     env = os.environ.get(MODEL_ENV)
     if env and env != "none":
         return Path(env).expanduser().resolve()
-    return paths.cache_dir() / "deadball" / "dead_skillcorner.pkl"
+    return MODEL_FILE
 
 
 def _runs(mask):

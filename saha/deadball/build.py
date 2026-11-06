@@ -9,11 +9,9 @@ through WS2's event-gated decoder (segment.py). It is written as a near-certain 
 a weight high enough that the combiner keeps every stoppage and every stretch of play exactly as
 WS2 decided them at the current costs (WEIGHT below). p_home is not written: WS2 gives no team.
 
-On first use the classifier is trained (saha/deadball/train.py: a 1.8 GB download, then about
-four minutes) and cached under cache/deadball/. `pipeline --fresh` deletes the cache, so set
-SAHA_SKILLCORNER_DIR to keep the download elsewhere, and SAHA_DEADBALL_MODEL to keep the trained
-classifier elsewhere. SAHA_DEADBALL_MODEL=none means no classifier and no opinion, as the Phase 0
-stub had: the tests run that way.
+The classifier is committed in saha/deadball/models/ with its manifest (DECISIONS D020);
+saha/deadball/train.py rebuilds it from the external data. SAHA_DEADBALL_MODEL names another
+file, or "none" for no classifier and no opinion, as the Phase 0 stub had.
 
 The whistle is off by default. Its frequency bands were measured on this match's audio, which
 the organizers' rules do not allow, and it needs the tactical video and ffmpeg on every machine
@@ -32,7 +30,7 @@ import numpy as np
 from saha.common import evidence, frame_table, paths, smart_tagging
 from saha.common.constants import PITCH_LENGTH_M, PITCH_WIDTH_M
 
-from . import segment, train
+from . import segment
 from .dead import model_disabled
 
 P_DEAD = 0.99       # the decision as a probability: 1 - the combiner's eps, so nothing is clipped
@@ -58,7 +56,6 @@ def whistles():
 
 def dead_ball(table, whistle=False, verbose=True):
     """(n,) bool: WS2's dead-ball decision on graded frames, False elsewhere."""
-    train.ensure_model()
     players = np.concatenate([table.players_xy, table.players_speed[..., None]], axis=-1)
     ev = segment.evidence(table.ball_xy, players, table.slot_team,
                           (PITCH_LENGTH_M, PITCH_WIDTH_M), segment.blocks_of(table.half),

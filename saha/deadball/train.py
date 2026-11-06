@@ -1,15 +1,16 @@
 """Train the dead-ball classifier on the twenty SkillCorner matches.
 
-    python -m saha.deadball.train            -> cache/deadball/dead_skillcorner.pkl
+    python -m saha.deadball.train      -> saha/deadball/models/dead_skillcorner.pkl (+ .json)
 
-build.py runs this on first use; run it alone to see the progress. The first run downloads and
-converts the matches (about 1.8 GB, saha/deadball/skillcorner.py); training then takes about two
-minutes. Trained on external data only: SkillCorner open data, MIT licence, (c) SkillCorner.
+The model is committed (DECISIONS D020), so the pipeline never runs this; it is here to rebuild
+the model from the external data. The first run downloads and converts the matches (about
+1.8 GB, saha/deadball/skillcorner.py); training then takes about two minutes. Trained on external
+data only: SkillCorner open data, MIT licence, (c) SkillCorner.
 
-The model is not committed: the guard keeps pickles out of git (saha/tools/guard.py), so every
-machine trains its own. Training runs on one thread: the trees come out the same on 1, 4 and 12
-threads, but scikit-learn stores the thread count in the pickle, so pinning it makes the file,
-and the SHA256 printed here, the same on every machine. That SHA256 is the one to compare.
+Training runs on one thread: the trees come out the same on 1, 4 and 12 threads, but
+scikit-learn stores the thread count in the pickle, so pinning it makes the file the same on
+every machine. The manifest next to the model records the data, the seeds, the library versions
+and the file's SHA256, which the guard checks against the file.
 
 The settings (classifier, frame subsampling, features) are the ones checked by leaving
 SkillCorner matches out, with EXTERNAL_TAU and EXTERNAL_WEIGHT in dead.py: docs/tech/ws2_deadball.md.
@@ -17,7 +18,9 @@ SkillCorner matches out, with EXTERNAL_TAU and EXTERNAL_WEIGHT in dead.py: docs/
 
 import argparse
 import hashlib
+import json
 import pickle
+import platform
 
 import numpy as np
 
@@ -26,6 +29,7 @@ from .dead import Signals, external_features, model_path
 
 SUBSAMPLE = 5           # train on every 5th tracked frame: neighbours are near copies
 SEEDS = (0, 1, 2)       # one classifier per seed, logits averaged
+SCRIPT = "saha/deadball/train.py"
 
 
 def classifier(seed):
@@ -48,8 +52,36 @@ def training_set(matches=skillcorner.MATCHES):
     return np.concatenate(Xs), np.concatenate(ys)
 
 
+def manifest(path, frames, n_features, rate):
+    """The D020 manifest of the model file at path."""
+    import scipy
+    import sklearn
+    with open(path, "rb") as handle:
+        digest = hashlib.sha256(handle.read()).hexdigest()
+    return {
+        "model": path.name,
+        "training_script": SCRIPT,
+        "command": "python -m saha.deadball.train",
+        "data": "SkillCorner open data, {} A-League 2024/25 matches ({}), github.com/{} at "
+                "commit {}; labels from its phases of play (alive inside a phase, dead "
+                "between phases)".format(len(skillcorner.MATCHES),
+                                         ", ".join(skillcorner.MATCHES),
+                                         skillcorner.REPOSITORY, skillcorner.COMMIT),
+        "licence": "MIT, (c) SkillCorner",
+        "seed": list(SEEDS),
+        "libraries": {"python": platform.python_version(), "numpy": np.__version__,
+                      "scipy": scipy.__version__, "scikit-learn": sklearn.__version__,
+                      "threads": 1},
+        "frames": frames,
+        "features": n_features,
+        "dead_rate": round(rate, 6),
+        "sha256": digest,
+    }
+
+
 def train(path=None):
-    """Fit the classifiers and write them to path (default dead.model_path()). Returns the path."""
+    """Fit the classifiers, write them to path (default dead.model_path()) with the manifest
+    next to them. Returns the path."""
     import sklearn
     from threadpoolctl import threadpool_limits
 
@@ -65,19 +97,13 @@ def train(path=None):
                      "trained_on": "SkillCorner open data, {} A-League 2024/25 matches, commit "
                                    "{}".format(len(skillcorner.MATCHES), skillcorner.COMMIT),
                      "frames": int(len(y)), "dead_rate": rate}, handle)
-    with open(path, "rb") as handle:
-        digest = hashlib.sha256(handle.read()).hexdigest()
+    info = manifest(path, int(len(y)), X.shape[1], rate)
+    with open(str(path) + ".json", "w") as handle:
+        json.dump(info, handle, indent=2)
+        handle.write("\n")
     print("dead-ball classifier: {} frames, dead rate {:.3f}, {} features, sklearn {}, "
-          "sha256 {}".format(len(y), rate, X.shape[1], sklearn.__version__, digest), flush=True)
-    return path
-
-
-def ensure_model():
-    """The classifier's path, trained first if it is missing."""
-    path = model_path()
-    if not path.is_file():
-        print("no dead-ball classifier yet: training it on SkillCorner (once)", flush=True)
-        train(path)
+          "sha256 {}".format(len(y), rate, X.shape[1], sklearn.__version__, info["sha256"]),
+          flush=True)
     return path
 
 
