@@ -1,5 +1,7 @@
 """The git guard, in a throwaway repository."""
 
+import hashlib
+import json
 import os
 import subprocess
 
@@ -92,3 +94,48 @@ def test_history_scan_finds_removed_files(repo):
     assert guard.main(["--all"]) == 0                 # the current tree is clean
     assert guard.main(["--history"]) == 1
     assert os.path.exists(repo / "README.md")
+
+
+MODEL = b"\x80\x04 a model trained on external data \x00" * 64
+
+
+def manifest(content, **override):
+    fields = {"training_script": "saha/deadball/train.py",
+              "data": "SkillCorner open data, 20 matches", "licence": "MIT", "seed": 0,
+              "libraries": {"python": "3.11", "scikit-learn": "1.9.1"},
+              "sha256": hashlib.sha256(content).hexdigest()}
+    fields.update(override)
+    return json.dumps(fields)
+
+
+def problems(path):
+    return "; ".join(found for p, items in guard.staged_problems(False) if p == path
+                     for found in items)
+
+
+def test_a_model_from_external_data_passes_with_a_matching_manifest(repo):
+    model = "saha/deadball/models/dead.pkl"
+    stage(repo, "saha/deadball/train.py", "print('train on external data')\n")
+    stage(repo, model, MODEL)
+    assert "no manifest" in problems(model)
+    stage(repo, model + ".json", manifest(MODEL))
+    assert guard.staged_problems(False) == [] and guard.main(["--all"]) == 0
+    stage(repo, model + ".json", manifest(b"another model"))
+    assert "does not match" in problems(model)
+    stage(repo, model + ".json", manifest(MODEL, licence="", training_script="gone.py"))
+    assert "lacks licence" in problems(model) and "gone.py" in problems(model)
+    assert guard.main(["--all"]) == 1
+
+
+@pytest.mark.parametrize("path, size, reason", [
+    ("saha/deadball/dead.pkl", 1024, "data-dump"),              # outside models/
+    ("saha/deadball/models/old/dead.pkl", 1024, "data-dump"),   # nested
+    ("models/dead.pkl", 1024, "data-dump"),                     # outside saha/
+    ("saha/deadball/models/frames.npy", 1024, "data-dump"),     # not a model format
+    ("saha/deadball/models/big.pkl", 6 * 1024 * 1024, "KB > 5120 KB"),
+], ids=["outside-models", "nested", "outside-saha", "npy", "too-big"])
+def test_other_pickles_and_big_models_are_still_refused(repo, path, size, reason):
+    content = b"\0" * size
+    stage(repo, path, content)
+    stage(repo, path + ".json", manifest(content))
+    assert reason in problems(path)

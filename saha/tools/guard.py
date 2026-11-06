@@ -11,13 +11,22 @@ A blob is flagged when it is under data/, cache/ or submissions/; has a data-dum
 than MAX_KB; or is a text table with more than MAX_TABLE_LINES lines (a frame-level dump).
 Staged changes to evaluation/ or games.py are refused too: that is the official scorer.
 
+One exception (DECISIONS D020): a model trained only on external open data may live at
+saha/<package>/models/<name>.pkl or .joblib, up to MAX_MODEL_KB, with a manifest next to it
+(<name>.pkl.json: the training script, the data and its licence, the seed, the library versions
+and the model's SHA256). The staged and --all checks read the manifest and refuse a model whose
+manifest is missing, incomplete or does not match it.
+
 Blobs that came from the upstream repository are public by definition and always pass. An upstream
 sync (WS1 only) sets SAHA_UPSTREAM_SYNC=1 to let changes to the scorer through; the one-off push
 of main sets SAHA_ALLOW_MAIN_PUSH=1. Standard library only: runs under any Python 3.
 """
 
 import argparse
+import hashlib
+import json
 import os
+import re
 import subprocess
 import sys
 
@@ -31,6 +40,9 @@ TABLE_SUFFIXES = (".csv", ".tsv", ".txt", ".json", ".jsonl", ".xml", ".dat")
 PROTECTED = ("evaluation/", "games.py")
 MAX_KB = 500
 MAX_TABLE_LINES = 5000
+MODEL_PATH = re.compile(r"^saha/[a-z0-9_]+/models/[^/]+\.(pkl|joblib)$")   # D020
+MAX_MODEL_KB = 5 * 1024
+MANIFEST_KEYS = ("training_script", "data", "licence", "seed", "libraries", "sha256")
 
 # The upstream commit this repository was created from. Its blobs (and those of upstream/main,
 # when the remote exists) are the official public files: the scorer, the public GT, baselines.
@@ -61,13 +73,18 @@ def upstream_blobs():
             if line.strip()}
 
 
+def is_model(path):
+    """A model file trained on external data, at the one place D020 allows."""
+    return MODEL_PATH.match(path.lower()) is not None
+
+
 def path_problems(path):
     lower = path.lower()
     name = lower.rsplit("/", 1)[-1]
     found = []
     if path not in ALLOWED_PATHS and lower.startswith(FORBIDDEN_DIRS):
         found.append("lives under data/, cache/ or submissions/")
-    if lower.endswith(FORBIDDEN_SUFFIXES):
+    if lower.endswith(FORBIDDEN_SUFFIXES) and not is_model(path):
         found.append("data-dump file type")
     if any(token in name for token in DATA_NAMES) and path not in ALLOWED_PATHS:
         found.append("named like a match asset")
@@ -80,12 +97,46 @@ def count_lines(blob_sha):
 
 def blob_problems(path, sha, size):
     found = path_problems(path)
-    if size > MAX_KB * 1024:
-        found.append("{} KB > {} KB".format(size // 1024, MAX_KB))
+    limit = MAX_MODEL_KB if is_model(path) else MAX_KB
+    if size > limit * 1024:
+        found.append("{} KB > {} KB".format(size // 1024, limit))
     if path.lower().endswith(TABLE_SUFFIXES) and size > 10 * 1024:
         lines = count_lines(sha)
         if lines > MAX_TABLE_LINES:
             found.append("{} lines: looks like a frame-level table".format(lines))
+    return found
+
+
+def index_blobs():
+    """{path: blob sha} of the index: the staged tree, or the checkout when nothing is staged."""
+    out = {}
+    for line in git("ls-files", "-s").splitlines():
+        meta, path = line.split("\t", 1)
+        out[path] = meta.split()[1]
+    return out
+
+
+def manifest_problems(path, index):
+    """What is wrong with the manifest of the model at `path` (D020), read from the index."""
+    manifest = path + ".json"
+    if manifest not in index:
+        return ["no manifest {} (DECISIONS D020)".format(manifest.rsplit("/", 1)[-1])]
+    try:
+        fields = json.loads(git("cat-file", "-p", index[manifest]))
+    except ValueError:
+        return ["its manifest is not valid JSON"]
+    if not isinstance(fields, dict):
+        return ["its manifest is not a JSON object"]
+    found = []
+    missing = [key for key in MANIFEST_KEYS if fields.get(key) in (None, "", [], {})]
+    if missing:
+        found.append("its manifest lacks {}".format(", ".join(missing)))
+    digest = hashlib.sha256(git("cat-file", "-p", index[path], binary=True)).hexdigest()
+    if fields.get("sha256") != digest:
+        found.append("its manifest's sha256 does not match the model")
+    script = fields.get("training_script")
+    if script and script not in index:
+        found.append("training script {} is not in the repository".format(script))
     return found
 
 
@@ -123,6 +174,7 @@ def scan_objects(rev_args):
 def staged_problems(allow_upstream_sync):
     entries = git("diff", "--cached", "--name-status", "--no-renames", "-z").split("\0")
     allowed = upstream_blobs()
+    index = index_blobs()
     report = []
     for status, path in zip(entries[0::2], entries[1::2]):
         if not path:
@@ -135,6 +187,8 @@ def staged_problems(allow_upstream_sync):
             if sha not in allowed:
                 size = int(git("cat-file", "-s", sha).strip())
                 found += blob_problems(path, sha, size)
+                if is_model(path):
+                    found += manifest_problems(path, index)
         if found:
             report.append((path, found))
     return report
@@ -142,13 +196,14 @@ def staged_problems(allow_upstream_sync):
 
 def tracked_problems():
     allowed = upstream_blobs()
+    index = index_blobs()
     report = []
-    for line in git("ls-files", "-s").splitlines():
-        meta, path = line.split("\t", 1)
-        sha = meta.split()[1]
+    for path, sha in index.items():
         if sha in allowed:
             continue
         found = blob_problems(path, sha, int(git("cat-file", "-s", sha).strip()))
+        if is_model(path):
+            found += manifest_problems(path, index)
         if found:
             report.append((path, found))
     return report
