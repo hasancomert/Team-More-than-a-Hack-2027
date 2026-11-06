@@ -79,21 +79,35 @@ def _sha256(path, chunk=1 << 22):
     return digest.hexdigest()
 
 
-def _fetch(file_id, target):
-    target.parent.mkdir(parents=True, exist_ok=True)
-    partial = target.with_suffix(target.suffix + ".part")
+def _fetch_once(file_id, partial):
     request = urllib.request.Request(DOWNLOAD_URL.format(file_id),
                                      headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=120) as response, open(partial, "wb") as out:
+        expected = int(response.headers.get("Content-Length") or 0)
         while True:
             block = response.read(1 << 20)
             if not block:
                 break
             out.write(block)
-    if partial.stat().st_size == 0:
-        partial.unlink()
-        raise OSError("empty download for figshare file {}".format(file_id))
-    partial.replace(target)
+    size = partial.stat().st_size
+    # A dropped connection can end the stream early without an error: check the length.
+    if size == 0 or (expected and size != expected):
+        raise OSError("figshare file {}: got {} of {} bytes".format(file_id, size, expected))
+
+
+def _fetch(file_id, target, attempts=3):
+    target.parent.mkdir(parents=True, exist_ok=True)
+    partial = target.with_suffix(target.suffix + ".part")
+    for attempt in range(1, attempts + 1):
+        try:
+            _fetch_once(file_id, partial)
+            partial.replace(target)
+            return
+        except OSError as error:
+            print("  attempt {} failed: {}".format(attempt, error), flush=True)
+            if partial.exists():
+                partial.unlink()
+    raise OSError("could not download figshare file {}".format(file_id))
 
 
 def download(match_id):
@@ -271,7 +285,13 @@ def prepare(match_id, rebuild=False):
     if rebuild or not path.is_file() or _version_of(path) != CONVERTED_VERSION:
         meta_path, tracking_path = download(match_id)
         print("  converting {} (a few minutes, once)".format(match_id), flush=True)
-        arrays = convert(meta_path, tracking_path)
+        try:
+            arrays = convert(meta_path, tracking_path)
+        except ET.ParseError as error:
+            # Almost always a truncated download: delete it so the next run fetches it again.
+            tracking_path.unlink()
+            raise OSError("{} is not valid XML ({}); deleted it, run again to re-download"
+                          .format(tracking_path.name, error)) from error
         with open(path, "wb") as handle:
             np.savez_compressed(handle, **arrays)
     return load(match_id)

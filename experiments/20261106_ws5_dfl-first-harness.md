@@ -53,6 +53,22 @@ opinion; the other three packages are stubs on `main`):
 The nearest-player baseline scores 0.2335 here, close to the official baseline on our match
 (0.2433). That is a plausibility check of the harness, not a target.
 
+All seven DFL matches, degraded, seed 0, spellF1 of the fusion (only `nearest` has an opinion):
+
+| match | cost_switch 15 | 35 (current) | 60 |
+|---|---|---|---|
+| J03WMX | 0.2107 | 0.1890 | 0.1549 |
+| J03WN1 | 0.2310 | 0.2106 | 0.1677 |
+| J03WOH | 0.1975 | 0.2034 | 0.1518 |
+| J03WOY | 0.1964 | 0.1715 | 0.1513 |
+| J03WPY | 0.2300 | 0.2335 | 0.2038 |
+| J03WQQ | 0.2378 | 0.2385 | 0.2163 |
+| J03WR9 | 0.2561 | 0.2231 | 0.1753 |
+| **mean** | **0.2228** | **0.2099** | **0.1744** |
+
+Lower costs win on raw DFL labels, but those labels change on every touch (below), which
+favours low costs by construction. Not a reason to change ours yet.
+
 Definition check (docs/tech/ws5_external.md): DFL possessions are much shorter than ours (median
 3.8 s vs 7.6 s on the public 5 minutes; 29.5% vs 11.8% under 2 s) and its D rate is much higher
 (44.3% vs 19.6%).
@@ -62,8 +78,6 @@ Definition check (docs/tech/ws5_external.md): DFL possessions are much shorter t
 Open. The harness is ready for every package to use. No parameter should be chosen from these
 numbers yet:
 
-- only one match is converted;
-- DFL's possession definition differs from ours.
+DFL's possession definition differs from ours, on all seven matches.
 
-Next: convert all seven matches, then propose a reasoned relabelling of DFL possession, and
-compare it with the raw labels.
+Next: propose a reasoned relabelling of DFL possession, and compare it with the raw labels.

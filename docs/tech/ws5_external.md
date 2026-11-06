@@ -92,6 +92,9 @@ public 5 minutes of our match. This checks whether the definitions agree. It nev
 | D rate | 44.3% | 19.6% |
 | median stoppage | 22.8 s | 16.4 s |
 
+All seven matches agree (`python -m saha.external.build --all`): 3.8-5.3 possessions per
+minute, median possession 3.0-4.7 s, 25-37% of possessions under 2 s, D rate 41-52%.
+
 The definitions **differ**, as TEAM.md warned:
 
 - DFL's `BallPossession` seems to change on every touch, contested balls included, so its
@@ -106,8 +109,9 @@ choice justified by football reasoning and compared on all seven matches.
 
 ## Limitations
 
-- One match converted so far; the seven together are needed before any value is chosen.
-- The possession definition mismatch above.
+- The possession definition mismatch above. On raw DFL labels, lower switching costs win
+  (mean spellF1 over the seven: 0.223 at cost_switch 15, 0.210 at 35, 0.174 at 60), but that
+  is expected when the labels change on every touch, so it is not yet a reason to lower ours.
 - External scores are about DFL matches with simulated occlusion, not our match. They rank
   versions; they do not predict our final score.
 
