@@ -79,4 +79,4 @@ dead-ball detector that reads the ball would look better there than it is (docs/
 ## Decision
 
 Open, for review. To decide as a team: whether the decoder stays in this package or its ideas
-move to WS1's combiner (STATUS.md item 3), and the whistle (items 5 and 6).
+move to WS1's combiner (STATUS.md, WS2 item 4), and the whistle (item 8).

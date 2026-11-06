@@ -107,3 +107,32 @@ def test_no_classifier_means_no_opinion(monkeypatch):
 def test_committed_model_loads():
     model = dead.ExternalDeadModel(dead.MODEL_FILE)
     assert model.n_features == 79 and len(model.models) == 3
+
+
+def test_whistle_score_streams_like_one_pass(monkeypatch):
+    from saha.deadball import audio
+    rng = np.random.default_rng(0)
+    hop, n_frames = audio.SAMPLE_RATE // audio.FPS, 300
+    t = np.arange(n_frames * hop) / audio.SAMPLE_RATE
+    signal = 0.05 * rng.standard_normal(len(t))
+    blast = (t >= 100 / audio.FPS) & (t < 140 / audio.FPS)
+    signal[blast] += 0.5 * np.sin(2 * np.pi * 4000.0 * t[blast])
+    pcm = np.round(np.clip(signal, -1, 1) * 32767).astype("<i2")
+    raw = memoryview(pcm.tobytes())
+    position = [0]
+
+    def read(n):   # an uneven stream, as from a pipe
+        n = min(n, 7777)
+        chunk = bytes(raw[position[0]:position[0] + n])
+        position[0] += len(chunk)
+        return chunk
+
+    monkeypatch.setattr(audio, "BLOCK", 37)
+    streamed = audio.whistle_score(read, n_frames)
+    starts = np.arange(n_frames) * hop + hop // 2 - audio.NFFT // 2
+    fits = starts + audio.NFFT <= len(pcm)
+    direct = np.zeros(n_frames, dtype=np.float32)
+    direct[fits] = audio.frame_scores(pcm / 32768.0, starts[fits], audio.band_mask())
+    np.testing.assert_array_equal(streamed, direct)
+    events = audio.whistle_events(streamed)
+    assert len(events) == 1 and abs(events[0][0] - 100) <= 1 and abs(events[0][1] - 140) <= 1

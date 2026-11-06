@@ -43,10 +43,12 @@ state twice.
 |---|---|---|
 | tactical tracking (frame table) | yes | every feature and event |
 | Smart Tagging | yes | the kick-off windows only (where to look for the kick-off) |
-| tactical video, audio | off by default | the referee's whistle (`--whistle`; limitations) |
+| tactical video, audio | off by default | the referee's whistle (`--whistle`; the whistle, below) |
 | homography, broadcast feed | no | the tracking is already in pitch coordinates |
 | SkillCorner open data (external) | yes | trains the classifier and sets the decoder's dead-ball settings |
 | IDSSE / DFL open data (external) | checks only | the hand-set player-pace constants |
+| TU Dortmund Whistle Detection Dataset (external) | yes | the whistle detector's threshold |
+| referee-whistle makers' specifications | yes | the whistle band |
 
 **SkillCorner open data**: 20 A-League 2024/25 matches of broadcast tracking at 10 fps, MIT
 licence, © SkillCorner, github.com/SkillCorner/opendata (commit `4340d27`). Downloaded by
@@ -58,6 +60,13 @@ pointer publishes.
 the ball whenever play is dead (on every dead frame, a median 0.48 m past the line at ball-outs),
 so a dead-ball method that looks at the ball scores near-perfectly there for the wrong reason.
 WS2 uses IDSSE only for the players.
+
+**Whistle Detection Dataset**: Kleingarn, D. and Brämer, D. (2024), TUDOdata,
+doi:10.17877/tudodata-2024-m0f6bmi1, CC BY-SA 4.0 (related paper: *Neural Network and Prior
+Knowledge Ensemble for Whistle Recognition*, RoboCup 2023, LNCS 14140). Referee whistles recorded
+by NAO robots at RoboCup events and labelled by its authors: we use its test split (147,440
+spectra of 1024-sample windows at 44.1 kHz, 249 whistle blasts, 0.45 h without whistles) to set
+one number, the detection threshold. No part of the dataset is redistributed.
 
 ## Training data
 
@@ -123,6 +132,43 @@ in the pickle, so pinning it keeps the file identical.
   at a whistle) are football reasoning. Checked on IDSSE: the pace that best separates dead from
   alive there is 1.55 m/s, and 83% of stoppages follow a match moving above 1.5 m/s.
 
+### The whistle (`audio.py`, off by default)
+
+Nothing in the detector comes from this match's audio, and it was never checked against it.
+
+- **Score.** A whistle is one steady tone, while a crowd spreads its sound over every frequency.
+  So a frame's score is how far the strongest frequency between 3 and 6 kHz stands above that
+  band's median level, in dB. It needs no assumption about which whistle the referee used.
+- **Band, 3–6 kHz.** It holds the tones that whistle makers publish for referee whistles
+  (Dolfin PRO 3.67 and 4.15 kHz, Acme Tornado 3.74 and 4.10 kHz, Fox 40 about 3.8 kHz on
+  average), and the whistles of the external recordings below, which peak at 4.7–5.3 kHz. A
+  score against side bands (1.5–2.7 and 6.5–8 kHz) did slightly better on those recordings, but
+  its upper side band holds the second harmonic of a 3.7–4.2 kHz football whistle, so it would
+  mark down exactly the whistles we need. Those recordings cannot show that, because their
+  whistles' harmonics lie near 10 kHz.
+- **Analysis.** 44.1 kHz audio, one 1024-sample Hamming window per video frame, centred on it:
+  the analysis of the external recordings, so that a threshold chosen on them means the same
+  here.
+- **Threshold, 38 dB.** It is chosen on TU Dortmund's labelled test recordings, read the way
+  `audio.py` reads ours (one window per 1/25 s, a blast is at least 3 frames over the threshold,
+  gaps of up to 3 frames bridged). The rule was fixed before the numbers were seen: the lowest
+  threshold with no false blast. The reason is the cost of each error: a false whistle in live
+  play holds a stoppage until a confirmed restart, while a missed one leaves the classifier and
+  the other events.
+
+  | threshold | blasts found (of 249) | false blasts per hour of background |
+  |---|---|---|
+  | 30 dB | 86.3% | 30.9 |
+  | 34 dB | 83.9% | 6.6 |
+  | 36 dB | 81.9% | 4.4 |
+  | **38 dB** | **73.1%** | **0** (95% upper bound 6.6) |
+  | 40 dB | 53.4% | 2.2 |
+
+  With 0.45 h of background, "no false blast" still allows up to 6.6 per hour.
+
+The prototype's bands (3.70–3.96 and 4.18–4.40 kHz, both tones required) and its 20 dB threshold
+were measured on this match's audio and are gone.
+
 ## Results
 
 **External matches, held out.** The 20 SkillCorner matches were split into five folds of four,
@@ -160,12 +206,14 @@ on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the form
 
 ## Limitations
 
-- **No whistle by default.** Its frequency bands were measured on this match's audio. That is
-  calibrating on the provided video, which the rules do not allow. It also needs the 5.2 GB video
-  and ffmpeg on every machine that reproduces the submission (D006). A band from published
-  referee-whistle measurements would fix the first problem; the team decides the second. Fouls
-  and offsides then open a stoppage only through the classifier, the players slowing down or the
-  ball vanishing.
+- **No whistle by default.** It needs the 5.2 GB video and ffmpeg on every machine that
+  reproduces the submission, which the team decides (D006), with a check that two machines find
+  the same whistle times. Without it, fouls and offsides open a stoppage only through the
+  classifier, the players slowing down or the ball vanishing.
+- **The whistle detector's evidence is thin.** Its threshold comes from robot microphones in
+  RoboCup halls, not a stadium broadcast, from 0.45 h of background and from whistles at a
+  higher pitch than football's. It finds 73% of those blasts. A crowd whistling at the referee
+  is a tone in the same band, and nothing has measured how often that passes 38 dB.
 - **Restart detection.** A free kick played short and slowly does not make the players speed up,
   and tracking cannot tell it from the touches while the set piece is prepared. Only 66–89% of
   true restarts produce a candidate on the external matches.
