@@ -161,3 +161,5 @@ come here (CLAUDE.md).
   The guard allows exactly that path and size, and checks the manifest on every commit and in
   CI. Pickles and big files stay forbidden everywhere else. A model fitted on any of this
   match's data is never allowed (D017).
+- **D021 Owners: Osman takes WS3** (GitHub osmaneren151, PR #12). Every package now has an
+  owner: WS1 Hasan, WS2 Alparslan, WS3 Osman, WS4 Baki, WS5 Seyyid.
