@@ -137,7 +137,8 @@ one float32 step away from the pinned 2.3.5, and that alone changes most of the 
   cost more than it saved, on every match (dead-ball F1 −0.037 [−0.046, −0.029]). The prototype
   first chose holding after every stop by comparing versions on the public window and on restart
   times read off the video. Neither is allowed any more, and the external matches reversed that
-  choice.
+  choice. A simulation on the external matches later found that even the hold after whistles
+  costs spellF1 (results, below). It only matters with `--whistle`, which stays off.
 - **Evidence weight**: the classifier's log-odds are divided by 204/32 frames. 204 is the median
   residual correlation time of its logit on held-out SkillCorner matches, and 32 the weight with
   the best held-out spellF1 among 8–256. Nothing is estimated from this match.
@@ -247,10 +248,43 @@ Re-checked for this package's decoder (no team evidence), with the choice made i
   (95% interval below zero at every threshold from 0.5 to 0.95), and −0.0001 to −0.0007 with
   5 s. The bursts' edges come from the candidate and the stop event, a second or more off, and
   the short possessions they make miss the true ones.
+- **Set-piece tags as restart evidence.** Tag-like windows were built from SkillCorner's own
+  set-piece events in four shapes (3 s before to 1 s after; 8/3 s; 15/8 s; 15 s with the set piece
+  anywhere inside), with all tags or 20% dropped. Inside each window the decoder trusted every
+  restart candidate, or the one the learned restart classifier rated highest, or that one with the
+  tag's type, so that the existing set-piece rule could find the stoppage before it. All 24
+  variants change spellF1 by −0.0014 to +0.0002. Confirming restarts is not what holds the
+  decoder back, so our match's Smart Tagging set pieces are not used beyond the kick-offs.
+- **What the whistle would be worth**, simulated (the external matches have no audio). A whistle
+  goes at the start of every true stoppage that ends in a free kick or a kick-off (fouls,
+  offsides, goals: 14% of stoppages) and goes through the pipeline like a real one.
+
+  | whistles | with the hold after a whistle | without it |
+  |---|---|---|
+  | perfect | −0.004 | +0.004 [+0.002, +0.005] |
+  | like `audio.py` (73% found, up to 0.5 s late) | −0.003 | +0.003 [+0.002, +0.004] |
+  | the same, plus false blasts at 6.6 per hour | −0.014 | −0.005 |
+
+  The hold costs because free kicks are the restarts the detector confirms least, so a held
+  stoppage runs on into play. Even without it, the whistle is worth a few thousandths. It stays
+  off.
+- **A player-only model where the ball is missing.** It uses only the players' pace, the fastest
+  players, team spread and their changes (20 columns), so it can also learn from WS5's DFL
+  matches without DFL's frozen ball reaching it. Trained on SkillCorner and DFL, it separates dead
+  from alive slightly better on DFL frames with the ball hidden (AUC 0.956 to 0.964).
+  - **Replacing** the classifier's evidence there costs −0.011 spellF1 on SkillCorner as
+    delivered and −0.002 under WS5's hiding.
+  - **Averaging** the two gives −0.002 and +0.002 [−0.0004, +0.005].
+  - On DFL, with one match held out at a time, the dead-ball F1 rises (0.917 to 0.926) but the
+    fused spellF1 moves by +0.001 to +0.002.
+
+  The rule fixed before the run (a gain under the hiding with its 95% interval above zero, at
+  most −0.002 as delivered) is not met, so it is not used.
 
 The scripts and their results are on branch `ws2/event-deadball`, in `external/`
-(`decoder_sweep.py`, `learned_bursts.py` and `error_costs.py shipped` for the two above; the
-sweep's per-match results as a summary, `skillcorner_decoder_sweep.txt`).
+(`decoder_sweep.py`, `learned_bursts.py`, `error_costs.py shipped`, `setpiece_windows.py`,
+`whistle_sim.py`, `player_model.py` and `player_model_dfl.py`; the sweep's per-match results as a
+summary, `skillcorner_decoder_sweep.txt`).
 
 **External, DFL, through WS5's harness** (`python -m saha.external.score`, and
 `python -m saha.deadball.external_check` for the dead ball alone): the seven DFL matches, 25 fps
