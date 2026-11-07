@@ -190,16 +190,36 @@ Removing the team evidence makes the dead-ball frames slightly better (F1 +0.003
 anyway: the team model was fitted on the match it labels. An externally trained team model is
 the way to win the 0.006 back.
 
-Where the rest goes (one kind of error put right from the truth at a time): stoppage starts
-+0.028 spellF1, two stoppages merged into one +0.022, ends +0.010, missed stoppages +0.008,
-false ones +0.007.
+Where the rest goes, for this package's decoder (one kind of error put right from the truth at
+a time; spellF1 0.626, ceiling 0.698): stoppage starts +0.031 (+0.013 where ours begin early,
++0.017 where they begin late), two stoppages merged into one +0.020, ends +0.010, missed
+stoppages +0.007, false ones +0.006. Part of the start error is SkillCorner's convention: its
+stoppages begin about 0.5 s before the ball crosses the line, while the competition's begin when
+it crosses. So start offsets are not tuned on SkillCorner.
 
 Also tested on the external matches and not adopted: learned stop and restart rates in four uses
 (+0.002 at best, down to −0.063), short holds after every stop, a learned restart confirmation
 (precision 0.94, recall 0.97, but no gain in the pipeline because the candidates themselves cover
 only 66–89% of true restarts), a minimum stoppage length, and a rule turning short bursts between
-stoppages back into play (half of its frames were dead). The scripts and their results are on
-branch `ws2/event-deadball`, in `external/`.
+stoppages back into play (half of its frames were dead).
+
+Re-checked for this package's decoder (no team evidence), with the choice made inside the folds:
+
+- **The decoder's settings**: the evidence weight (16–48) and the event-gating rates (near an
+  event 0.5–2 s; with no event, a stop once per 60–300 s of play and a restart once per
+  30–300 s of dead ball), 144 combinations. The best of them is +0.0004 spellF1 on all twenty
+  matches (optimistic). Chosen on sixteen matches and scored on the other four, the choice gives
+  −0.0013 [−0.0036, +0.0003]. The settings stay as they were (weight 32, 1 s, 120 s).
+- **Splitting merged stoppages with the learned restart classifier**: inside a predicted
+  stoppage, a confident restart candidate followed by a stop event within 5 or 10 s is held in
+  play. Stoppage F1 rises (0.833 to 0.840), but spellF1 falls: −0.003 to −0.004 with 10 s
+  (95% interval below zero at every threshold from 0.5 to 0.95), and −0.0001 to −0.0007 with
+  5 s. The bursts' edges come from the candidate and the stop event, a second or more off, and
+  the short possessions they make miss the true ones.
+
+The scripts and their results are on branch `ws2/event-deadball`, in `external/`
+(`decoder_sweep.py`, `learned_bursts.py` and `error_costs.py shipped` for the two above; the
+sweep's per-match results as a summary, `skillcorner_decoder_sweep.txt`).
 
 **Our match, checks only** (no setting was chosen from these). The submission has the dead ball
 on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the formation.
@@ -239,3 +259,6 @@ everything cached (SHA256 `081f57c1…`).
   that match dead). `tests/test_deadball.py` tests the package with a stand-in classifier and
   checks that the committed one loads.
 - `python -m saha.deadball.build --whistle` adds the whistle (needs ffmpeg and the video).
+- `python -m saha.deadball.audio` prints the number of whistle blasts, a SHA256 of their frames
+  and the ffmpeg version, for the two-machine check of item 8 (`--refresh` decodes the audio
+  again). On the WS2 machine (ffmpeg 9.0.2), a cached and a fresh decode give the same SHA256.

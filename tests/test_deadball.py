@@ -136,3 +136,9 @@ def test_whistle_score_streams_like_one_pass(monkeypatch):
     np.testing.assert_array_equal(streamed, direct)
     events = audio.whistle_events(streamed)
     assert len(events) == 1 and abs(events[0][0] - 100) <= 1 and abs(events[0][1] - 140) <= 1
+
+
+def test_whistle_fingerprint():
+    from saha.deadball import audio
+    assert audio.fingerprint([(10, 20), (30, 45)]) == audio.fingerprint([(10, 20), (30, 45)])
+    assert audio.fingerprint([(10, 20), (30, 45)]) != audio.fingerprint([(10, 20), (30, 46)])

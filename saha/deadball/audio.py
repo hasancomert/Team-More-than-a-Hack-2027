@@ -1,5 +1,8 @@
 """The referee's whistle, from the tactical video's audio track.
 
+    python -m saha.deadball.audio            blast count and fingerprint, to compare machines
+    python -m saha.deadball.audio --refresh  the same, decoding the audio again
+
 A whistle is the one direct trace of a decision the tracking cannot see: a foul or an offside
 stops play with no ball event at all. It is also blown to restart play after long breaks, so a
 whistle alone is a cue, not a stoppage; events.py decides which is which.
@@ -24,6 +27,9 @@ Not used by default: the whistle needs the video and ffmpeg on every machine tha
 submission, which is a team decision (D006). build.py --whistle turns it on.
 """
 
+import argparse
+import hashlib
+import json
 import subprocess
 
 import numpy as np
@@ -130,3 +136,33 @@ def whistle_events(score, threshold=WHISTLE_DB):
         else:
             blasts.append([a, b])
     return [(int(a), int(b)) for a, b in blasts if b - a >= MIN_FRAMES]
+
+
+def fingerprint(events):
+    """SHA256 of the blasts' frames: equal on two machines means the same whistle times."""
+    return hashlib.sha256(json.dumps(events).encode()).hexdigest()
+
+
+def ffmpeg_version():
+    done = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True, check=True)
+    return done.stdout.splitlines()[0]
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Whistle blasts of the tactical video, as a count and a fingerprint to compare "
+                    "across machines (STATUS.md, WS2 item 8). Prints no frames.")
+    parser.add_argument("--data", help="data bundle root (default: MTAH_DATA_DIR or ./data)")
+    parser.add_argument("--refresh", action="store_true",
+                        help="decode the audio again instead of reading the cache")
+    args = parser.parse_args(argv)
+    if args.data:
+        paths.use_data_dir(args.data)
+    events = whistle_events(load_whistle_score(refresh=args.refresh))
+    print("whistle blasts {}  sha256 {}".format(len(events), fingerprint(events)))
+    print(ffmpeg_version())
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
