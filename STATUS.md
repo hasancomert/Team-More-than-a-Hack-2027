@@ -151,17 +151,17 @@ the list that stood here. It does the following:
 - **Documentation:** `docs/tech/ws2_deadball.md` gives the source and licence of every number.
 - **Decoder:** WS2's decoder stays in `saha/deadball`, and the combiner reproduces its decision
   frame for frame (D022).
+- **Reproduced on 7 November:** the team leader's machine gives the same SAHA.csv SHA256 as WS2's
+  (`081f57c1…`), classifier included.
 
 Still open:
 
-1. **Before merging:** the team leader runs `python -m saha.pipeline --fresh` on the branch and
-   compares SAHA.csv's SHA256 with WS2's (`081f57c1…`).
-2. **Does the classifier transfer?** It learned from 10 fps broadcast tracking in which 29% of
+1. **Does the classifier transfer?** It learned from 10 fps broadcast tracking in which 29% of
    frames are dead. On this match it calls about half of the frames dead. Score WS2 on WS5's DFL
    matches, which are 25 fps and full pitch like ours, to see whether it transfers. That is a
    check, not a tuning.
-3. **One external set, with WS5.** Move the SkillCorner loader from `saha/deadball/skillcorner.py`
+2. **One external set, with WS5.** Move the SkillCorner loader from `saha/deadball/skillcorner.py`
    into `saha/external`, together with Seyyid.
-4. **The whistle needs a team decision** (D006). Using it would require the tactical video
+3. **The whistle needs a team decision** (D006). Using it would require the tactical video
    (5.2 GB) and ffmpeg on every machine that reproduces the submission, plus a determinism check:
    the same whistle times on two machines. Until the team decides, the whistle stays off.
