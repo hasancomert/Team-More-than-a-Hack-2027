@@ -57,9 +57,12 @@ pointer publishes.
 
 **IDSSE**: 7 Bundesliga / 2. Bundesliga 2022/23 matches, CC BY 4.0, © DFL / Sportec Solutions
 (Bassek et al., *Scientific Data*, 2025), as in docs/tech/ws5_external.md. That provider freezes
-the ball whenever play is dead (on every dead frame, a median 0.48 m past the line at ball-outs),
-so a dead-ball method that looks at the ball scores near-perfectly there for the wrong reason.
-WS2 uses IDSSE only for the players.
+the ball whenever play is dead: its position stops changing on every dead frame (a median
+0.48 m past the line at ball-outs), and on under 1% of live ones. That is a cue no real tracker
+gives. The prototype's own pipeline, with the ball always visible, scored 0.987 dead-ball F1 there
+for that reason. Under WS5's degradation it is worth little to this package: removing every
+frozen position changes dead-ball F1 by 0.005 (results, below). WS2 used IDSSE for the
+player-pace constants and scores this package with WS5's harness.
 
 **Whistle Detection Dataset**: Kleingarn, D. and Brämer, D. (2024), TUDOdata,
 doi:10.17877/tudodata-2024-m0f6bmi1, CC BY-SA 4.0 (related paper: *Neural Network and Prior
@@ -220,6 +223,29 @@ Re-checked for this package's decoder (no team evidence), with the choice made i
 The scripts and their results are on branch `ws2/event-deadball`, in `external/`
 (`decoder_sweep.py`, `learned_bursts.py` and `error_costs.py shipped` for the two above; the
 sweep's per-match results as a summary, `skillcorner_decoder_sweep.txt`).
+
+**External, DFL, through WS5's harness** (`python -m saha.external.score`, and
+`python -m saha.deadball.external_check` for the dead ball alone): the seven DFL matches, 25 fps
+and full pitch like ours, degraded by WS5 (the ball hidden on 41% of frames in long stretches
+placed at random). Nothing was chosen on these numbers.
+
+| | spellF1, fused with `nearest` | `nearest` alone |
+|---|---|---|
+| mean of seven matches | 0.311 (0.264–0.339) | 0.210 (0.172–0.239) |
+
+| dead ball | precision | recall | F1 | stoppage F1 | dead, DFL | dead, ours |
+|---|---|---|---|---|---|---|
+| as delivered | 0.655 | 0.997 | 0.790 | 0.570 | 44.9% | 68.3% |
+| frozen ball removed | 0.649 | 0.995 | 0.785 | 0.566 | 44.9% | 68.7% |
+
+The decision misses almost no stoppage but calls a third of live play dead, and the cause is
+the hidden stretches. With the ball in view, 5.2% of live frames are called dead; under a hidden
+stretch, 92.5% are, and those hold 93% of the wrongly dead frames. The classifier learned on
+SkillCorner that a ball unseen for a long time means a stoppage, which holds there. WS5's
+degradation places the hidden stretches whatever the play. How much of our match's missing ball
+falls in live play decides which picture is ours, and no check allowed on our match can say.
+Training the classifier under the same degradation is the way to make it hold either way
+(next).
 
 **Our match, checks only** (no setting was chosen from these). The submission has the dead ball
 on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the formation.

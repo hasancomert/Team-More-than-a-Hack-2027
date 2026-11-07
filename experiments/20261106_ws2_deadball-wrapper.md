@@ -73,8 +73,7 @@ The public intervals overlap: noise, and not a reason for anything (D016). Other
   a freshly converted copy of the data.
 - `pytest`: 77 passed.
 
-The DFL harness (WS5) was not run with this package. DFL freezes the ball on dead frames, so a
-dead-ball detector that reads the ball would look better there than it is (docs/tech/ws2_deadball.md).
+WS5's DFL harness with this package: experiments/20261107_ws2_dfl-check.md.
 
 ## Decision
 
