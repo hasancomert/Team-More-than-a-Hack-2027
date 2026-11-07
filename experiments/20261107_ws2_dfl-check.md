@@ -61,6 +61,7 @@ closest to our recording, so it shows whether the classifier transfers.
 
 ## Decision
 
-Open. Next: train the classifier under WS5's degradation and keep it only if held-out
-SkillCorner under the same degradation improves (95% interval above zero), natural SkillCorner
-loses no more than 0.005 spellF1, and DFL's dead-ball F1 improves. Rule fixed before the run.
+Open, then acted on: the classifier trained under WS5's degradation as well passed the rule
+fixed before its run (held-out SkillCorner under the degradation improves with its 95% interval
+above zero, as delivered it loses no more than 0.005 spellF1, DFL's dead-ball F1 rises). See
+experiments/20261107_ws2_hidden-training.md.

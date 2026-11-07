@@ -79,8 +79,17 @@ No data of this match trains or tunes anything.
   so a frame inside a phase is alive and a frame between phases is dead. Frames with fewer than
   ten tracked players are never used: they are the broadcast's replays and close-ups (56% of dead
   frames), and their absence would give the dead ball away.
-- **Frames**: every 5th tracked frame of the 20 matches (neighbours are near copies), 439,447 in
-  all, resampled from 10 to 25 fps so that every frame-based constant keeps its meaning.
+- **Frames**: every 5th tracked frame of the 20 matches (neighbours are near copies), resampled
+  from 10 to 25 fps so that every frame-based constant keeps its meaning. Every match is used
+  twice: as delivered, and with the ball hidden the way WS5's degradation hides it
+  (`saha.external.degrade.hide_mask`, its default settings, seed 0: 41% of frames, in long
+  stretches placed at random). 878,894 frames in all.
+- **Why twice.** On SkillCorner the ball is missing on 5.7% of live frames and 55% of dead ones.
+  A classifier trained on the matches as delivered learns that a ball missing for long means a
+  stoppage, and on WS5's DFL matches it called 92% of live frames dead under a hidden stretch
+  (results, below). Our match misses the ball on 41% of graded frames, against SkillCorner's
+  20%, so live play without a ball is likely there too. Trained on both copies, the classifier
+  has to judge the players when the ball is gone.
 - **Features** (79): 24 that describe a few seconds around each frame, and 55 that describe the
   change across it (eleven signals averaged over the second before, the second after and the two
   seconds after that, with the after-minus-before differences). A stop or a restart is a change;
@@ -91,11 +100,12 @@ No data of this match trains or tunes anything.
 
 The model is committed as `saha/deadball/models/dead_skillcorner.pkl` (3.6 MB), with its manifest
 `dead_skillcorner.pkl.json` (DECISIONS D020): the training script, the 20 matches and the
-repository commit, the licence, the seeds, the library versions and the SHA256, `0506d791…`.
-`python -m saha.deadball.train` rebuilds it from the external data, and the same SHA256 came out
-on every rebuild, including one from a freshly converted copy of the data. Training runs on one
-thread. The trees are the same on 1, 4 and 12 threads, but scikit-learn stores the thread count
-in the pickle, so pinning it keeps the file identical.
+repository commit, the hiding, the licence, the seeds, the library versions and the SHA256,
+`e25874c8…`. `python -m saha.deadball.train` rebuilds it from the external data. Two things keep
+the file identical between machines. The training runs on one thread: scikit-learn stores the
+thread count in the pickle, though the trees came out the same on 1, 4 and all cores. And the
+numpy version must be the pinned one: numpy 2.5.4 computes a percentile of the players' speeds
+one float32 step away from the pinned 2.3.5, and that alone changes most of the trees.
 
 ## Possession rules (dead ball) and how each setting was chosen
 
@@ -185,8 +195,26 @@ team side is the prototype's own throughout, so the differences come from the de
 | prototype's first design (classifier fitted on the match itself, hold after every stop) | — | 0.792 | 0.671 |
 | the same without any hold | 0.571 | 0.833 | 0.696 |
 | SkillCorner classifier, weight 32, hold after whistles only | 0.632 | 0.899 | 0.826 |
-| **the same without team evidence in the decoder (this package)** | **0.626** | **0.901** | **0.833** |
+| the same without team evidence in the decoder | 0.626 | 0.901 | 0.833 |
+| **the same, classifier trained with WS5's hidden ball as well (this package)** | **0.624** | **0.899** | **0.831** |
 | perfect dead ball, same team side (the ceiling for dead-ball work) | 0.697 | 1.000 | 1.000 |
+
+The same held-out matches with WS5's hiding applied (stop and restart events recomputed from the
+hidden ball), the conditions WS5 uses to stand for ours:
+
+| classifier trained on | spellF1 | dead-ball F1 | stoppage F1 | dead share (true 29%) | live frames called dead under a hidden stretch |
+|---|---|---|---|---|---|
+| the matches as delivered | 0.425 | 0.630 | 0.558 | 59.7% | 93.3% |
+| the hidden copies only | 0.585 | 0.841 | 0.736 | 32.3% | 13.4% |
+| **both (this package)** | **0.583** | **0.835** | **0.730** | **33.2%** | **15.1%** |
+
+Training on both copies gains +0.158 spellF1 [+0.146, +0.171] under the hiding (better on all 20
+matches) and costs −0.003 [−0.006, +0.001] on the matches as delivered. The hidden copies alone
+cost −0.007 [−0.010, −0.003] there. The rule was fixed before the run: adopt if the gain under
+the hiding is above zero, the matches as delivered lose no more than 0.005, and DFL's dead-ball
+F1 rises. The both-copies classifier passed all three; the hidden-only one failed the second.
+(`external/hidden_training.py`; the shipped file is retrained under the team's pins, a sibling
+of the experiment's models, below.)
 
 Removing the team evidence makes the dead-ball frames slightly better (F1 +0.003, stoppage F1
 +0.007) and costs 0.006 spellF1 [−0.008, −0.003] (worse on 15 of 20 matches). It is removed
@@ -229,26 +257,27 @@ sweep's per-match results as a summary, `skillcorner_decoder_sweep.txt`).
 and full pitch like ours, degraded by WS5 (the ball hidden on 41% of frames in long stretches
 placed at random). Nothing was chosen on these numbers.
 
-| | spellF1, fused with `nearest` | `nearest` alone |
+| classifier | spellF1, fused with `nearest` | `nearest` alone |
 |---|---|---|
-| mean of seven matches | 0.311 (0.264–0.339) | 0.210 (0.172–0.239) |
+| trained on the matches as delivered | 0.311 (0.264–0.339) | 0.210 (0.172–0.239) |
+| **trained on both copies (this package)** | **0.319** (0.274–0.367) | 0.210 |
 
-| dead ball | precision | recall | F1 | stoppage F1 | dead, DFL | dead, ours |
-|---|---|---|---|---|---|---|
-| as delivered | 0.655 | 0.997 | 0.790 | 0.570 | 44.9% | 68.3% |
-| frozen ball removed | 0.649 | 0.995 | 0.785 | 0.566 | 44.9% | 68.7% |
+| dead ball | precision | recall | F1 | stoppage F1 | dead, DFL | dead, ours | live called dead, ball hidden / in view |
+|---|---|---|---|---|---|---|---|
+| trained as delivered | 0.655 | 0.997 | 0.790 | 0.570 | 44.9% | 68.3% | 92.5% / 5.2% |
+| trained as delivered, frozen ball removed | 0.649 | 0.995 | 0.785 | 0.566 | 44.9% | 68.7% | 92.3% / 6.7% |
+| **trained on both copies** | **0.877** | **0.961** | **0.917** | **0.783** | 44.9% | **49.2%** | **20.3% / 4.5%** |
+| trained on both copies, frozen ball removed | 0.882 | 0.929 | 0.905 | 0.781 | 44.9% | 47.4% | 17.7% / 4.9% |
 
-The decision misses almost no stoppage but calls a third of live play dead, and the cause is
-the hidden stretches. With the ball in view, 5.2% of live frames are called dead; under a hidden
-stretch, 92.5% are, and those hold 93% of the wrongly dead frames. The classifier learned on
-SkillCorner that a ball unseen for a long time means a stoppage, which holds there. WS5's
-degradation places the hidden stretches whatever the play. How much of our match's missing ball
-falls in live play decides which picture is ours, and no check allowed on our match can say.
-Training the classifier under the same degradation is the way to make it hold either way
-(next).
+Trained on the matches as delivered, the classifier missed almost no stoppage but called a third
+of live play dead: 93% of the wrongly dead frames lay under the harness's hidden-ball stretches.
+It had learned on SkillCorner that a ball unseen for a long time means a stoppage, which holds
+there but not where the ball goes missing in play. Trained on both copies, the dead-ball F1 rises
+from 0.790 to 0.917. DFL's frozen ball is now worth 0.012 of it.
 
 **Our match, checks only** (no setting was chosen from these). The submission has the dead ball
-on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the formation.
+on 48.3% of graded frames (50.4% with the classifier trained on the matches as delivered), 293
+possessions (305), and 5 of 6 tagged kick-offs are confirmed by the formation.
 
 ## Limitations
 
@@ -274,10 +303,10 @@ on 50.4% of graded frames, and 5 of 6 tagged kick-offs are confirmed by the form
 Python 3.11 with `requirements-saha.txt` (scikit-learn 1.9.1 and its dependencies are pinned
 there). The build reads the committed classifier and takes about 15 s; no external data is
 needed. From an empty cache, the whole pipeline gives the same `SAHA.csv` as a run with
-everything cached (SHA256 `081f57c1…`).
+everything cached (SHA256 `3b74ae89…`).
 
 - Rebuilding the classifier (`python -m saha.deadball.train`) downloads SkillCorner to
-  `cache/external/skillcorner/` (1.8 GB) and converts it, then trains in about 2 minutes. Set
+  `cache/external/skillcorner/` (1.8 GB) and converts it, then trains in about 7 minutes. Set
   `SAHA_SKILLCORNER_DIR` to use a copy already on disk.
 - `SAHA_DEADBALL_MODEL` names another classifier file, or `none` for no classifier and no
   opinion, as the Phase 0 stub had. The pipeline tests run with `none`, because the synthetic

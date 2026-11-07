@@ -3,13 +3,22 @@
     python -m saha.deadball.train      -> saha/deadball/models/dead_skillcorner.pkl (+ .json)
 
 The model is committed (DECISIONS D020), so the pipeline never runs this; it is here to rebuild
-the model from the external data. The first run downloads and converts the matches (about
-1.8 GB, saha/deadball/skillcorner.py); training then takes about two minutes. Trained on external
+the model from the external data.
+
+Every match is used twice: as delivered, and with the ball hidden the way WS5's degradation hides
+it (saha/external/degrade.py, its default settings, seed 0: long stretches placed at random,
+whatever the play). On SkillCorner the ball is missing on 6% of live frames and 55% of dead
+ones, so a classifier trained on the delivered matches alone learns that a missing ball means a
+stoppage; on WS5's DFL matches it then called 92% of live frames under a hidden stretch dead.
+With both copies, held out: +0.158 spellF1 on SkillCorner under WS5's hiding, −0.003 as
+delivered; DFL dead-ball F1 0.790 to 0.917 (experiments/20261107_ws2_hidden-training.md). The first run downloads and converts the matches (about
+1.8 GB, saha/deadball/skillcorner.py); training then takes about seven minutes. Trained on external
 data only: SkillCorner open data, MIT licence, (c) SkillCorner.
 
 Training runs on one thread: the trees come out the same on 1, 4 and 12 threads, but
 scikit-learn stores the thread count in the pickle, so pinning it makes the file the same on
-every machine. The manifest next to the model records the data, the seeds, the library versions
+every machine. Run it with the pinned numpy (requirements-saha.txt): numpy 2.5.4 computes a
+percentile of the players' speeds one float32 step away from 2.3.5, and most trees change. The manifest next to the model records the data, the seeds, the library versions
 and the file's SHA256, which the guard checks against the file.
 
 The settings (classifier, frame subsampling, features) are the ones checked by leaving
@@ -23,6 +32,9 @@ import pickle
 import platform
 
 import numpy as np
+
+from saha.common.constants import X
+from saha.external.degrade import Degradation, hide_mask
 
 from . import skillcorner
 from .dead import Signals, external_features, model_path
@@ -39,16 +51,33 @@ def classifier(seed):
                                           random_state=seed)
 
 
+def hidden_ball(d, config=Degradation()):
+    """The match's ball with WS5's hidden stretches (saha/external/degrade.hide_mask)."""
+    half = np.zeros(len(d["alive"]), dtype=np.int8)
+    for number, (a, b) in enumerate(d["runs"]):
+        half[a:b] = number + 1
+    labels = np.where(d["valid"], 0, X).astype(np.int8)    # only "scored or not" is read
+    hidden = hide_mask(half, labels, config, np.random.default_rng(config.seed))
+    ball = d["ball"].copy()
+    ball[hidden] = np.nan
+    return ball
+
+
 def training_set(matches=skillcorner.MATCHES):
-    """(X, y): features and dead (1) / alive (0) on every SUBSAMPLE-th tracked frame."""
-    Xs, ys = [], []
+    """(X, y): features and dead (1) / alive (0) on every SUBSAMPLE-th tracked frame, every
+    match as delivered and then every match with WS5's hidden ball."""
+    copies = {"delivered": ([], []), "hidden": ([], [])}
     for match in matches:
         d = skillcorner.load(match)
-        sig = Signals(d["ball"][:, :2], d["players"], d["team"],
-                      tuple(float(v) for v in d["pitch"]))
         rows = np.flatnonzero(d["valid"])[::SUBSAMPLE]
-        Xs.append(external_features(sig)[rows])
-        ys.append((d["alive"][rows] == 0).astype(np.int8))
+        y = (d["alive"][rows] == 0).astype(np.int8)
+        for name, ball in (("delivered", d["ball"]), ("hidden", hidden_ball(d))):
+            sig = Signals(ball[:, :2], d["players"], d["team"],
+                          tuple(float(v) for v in d["pitch"]))
+            copies[name][0].append(external_features(sig)[rows])
+            copies[name][1].append(y)
+    Xs = copies["delivered"][0] + copies["hidden"][0]
+    ys = copies["delivered"][1] + copies["hidden"][1]
     return np.concatenate(Xs), np.concatenate(ys)
 
 
@@ -68,6 +97,8 @@ def manifest(path, frames, n_features, rate):
                                          ", ".join(skillcorner.MATCHES),
                                          skillcorner.REPOSITORY, skillcorner.COMMIT),
         "licence": "MIT, (c) SkillCorner",
+        "augmentation": "every match twice: as delivered, and with the ball hidden by "
+                        "saha.external.degrade.hide_mask, Degradation() defaults, seed 0",
         "seed": list(SEEDS),
         "libraries": {"python": platform.python_version(), "numpy": np.__version__,
                       "scipy": scipy.__version__, "scikit-learn": sklearn.__version__,

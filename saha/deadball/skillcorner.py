@@ -17,6 +17,7 @@ load(match) resamples to 25 fps, so every frame-based constant keeps its meaning
     valid     (n,)        frames with tracking: the broadcast cuts to replays and close-ups during
                           stoppages, and those frames have no data at all, which would give the
                           dead ball away; train only where this is True
+    runs      (2, 2)      [start, stop) of each half
     pitch     (2,)        length, width in metres
 """
 
@@ -33,7 +34,7 @@ from saha.common import paths
 
 SOURCE_FPS, FPS = 10, 25
 MIN_PLAYERS = 10            # a frame with fewer tracked players is a replay or a close-up
-CONVERTED_VERSION = 1
+CONVERTED_VERSION = 2
 
 REPOSITORY = "SkillCorner/opendata"
 COMMIT = "4340d274572876239c154c90bc507a9b3250a656"   # master on 14 Sep 2026
@@ -186,8 +187,12 @@ def _parse(match):
     players25[..., 2] = speed
     period25 = period[nearest]
     valid = (tracked[nearest] >= MIN_PLAYERS) & (period25 > 0)
+    runs = []
+    for number in (1, 2):
+        idx = np.flatnonzero(period25 == number)
+        runs.append([int(idx[0]), int(idx[-1]) + 1])
     return {"ball": ball25, "players": players25, "team": team, "alive": alive10[nearest],
-            "valid": valid, "pitch": np.array([length, width], np.float32),
+            "valid": valid, "runs": np.array(runs), "pitch": np.array([length, width], np.float32),
             "version": np.array(CONVERTED_VERSION)}
 
 
