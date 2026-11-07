@@ -163,3 +163,16 @@ come here (CLAUDE.md).
   match's data is never allowed (D017).
 - **D021 Owners: Osman takes WS3** (GitHub osmaneren151, PR #12). Every package now has an
   owner: WS1 Hasan, WS2 Alparslan, WS3 Osman, WS4 Baki, WS5 Seyyid.
+
+## 2026-11-07
+
+- **D022 (accepted by the team leader, 7 November) WS2's decoder stays in `saha/deadball`.**
+    - WS2 decides dead or alive with its own event-gated decoder, validated on held-out
+      external matches.
+    - It hands the combiner that decision as `p_dead` 0.99 / 0.01 at weight 20, and the
+      combiner reproduces it frame for frame.
+    - The decoder's ideas do not move into WS1's combiner before the feature freeze. We revisit
+      this only if WS5's external harness shows that fusing beats it.
+    - The pipeline tests run WS2's builder without its classifier (`SAHA_DEADBALL_MODEL=none`).
+      The four-player synthetic match is no input for a model trained on real matches, and
+      `tests/test_deadball.py` tests the package itself.
