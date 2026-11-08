@@ -92,8 +92,8 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 | 28 – 31 Oct | Phase 0: shared infrastructure | done; PR #1 merged on 31 Oct |
 | 31 Oct – 11 Nov | Phase 1: parallel work | started |
 | 4 Nov | every package's first working evidence file | |
-| 5 Nov | joint score report 1 (WS1) | |
-| 9 Nov | joint score report 2 (WS1) | |
+| 5 Nov | joint score report 1 (WS1) | skipped: no package had delivered |
+| 9 Nov | joint score report 2 (WS1) | written on 8 Nov (docs/reports/) |
 | 10 Nov | last day for everyone to be registered as SAHA | |
 | 12 Nov | feature freeze: FINAL_CHOICE.md with its commit hash | |
 | 13 – 15 Nov | technical document; reproduction on two machines (SHA256); public-repository preparation | reproduction already matched once, on 6 Nov |
@@ -133,7 +133,13 @@ git checkout -b ws2/first-evidence        # your package and a short topic
     - Done (6 November): the submission reproduces byte for byte on a second machine. Seyyid's
       clean install gives the same SHA256 as the team leader's (`9fedd7df…`). The check is
       repeated on the final version (13 – 15 November).
-    - Joint score report 1 on 5 November.
+    - Joint score report 2:
+      [docs/reports/20261109_joint_report_2.md](docs/reports/20261109_joint_report_2.md). Report 1
+      was skipped, because no package had delivered by 5 November.
+    - Ready for the freeze:
+        - the `FINAL_CHOICE.md` template;
+        - `docs/tech/saha_main.md` and WS1's own section `docs/tech/ws1_pipeline.md`;
+        - `python -m saha.tools.techdoc`, which assembles SAHA.md from them.
     - The technical document says how the team used Claude Code: aggregate output only, never
       data (D008, D017).
 

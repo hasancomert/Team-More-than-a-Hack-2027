@@ -13,7 +13,7 @@ from saha.common import epts, frame_table, kinematics, paths, submission
 from saha.common import experiments
 from saha.common.constants import A, D, H, X
 from saha import pipeline
-from saha.tools import data_checks, eda, metric_behaviour as mb, selfcheck
+from saha.tools import data_checks, eda, metric_behaviour as mb, selfcheck, techdoc
 
 
 def test_data_checks_on_a_synthetic_bundle(full_match, use_data, tmp_path):
@@ -168,3 +168,24 @@ def test_selfcheck_recovers_held_out_touches(full_match, use_data, tmp_path):
     assert {"n_possessions", "short_possessions_lt_2s", "d_rate"} <= set(rows[0])
     assert selfcheck.main(["--values", "20"]) == 0
 
+
+
+def test_techdoc_puts_the_package_sections_in_order_as_appendices(tmp_path):
+    (tmp_path / "saha_main.md").write_text("# SAHA\n\n## Summary\n\ntext\n\n## Appendices\n")
+    (tmp_path / "ws3_visible.md").write_text(
+        "# WS3: ball tracked\n\n## Approach\n\n```bash\n# a shell comment\n```\n")
+    (tmp_path / "ws1_pipeline.md").write_text("# WS1: pipeline\n\n## Approach\n\nbody\n")
+    (tmp_path / "README.md").write_text("# how to assemble\n")
+    (tmp_path / "ws9_other.md").write_text("# not a package\n")
+    text = techdoc.assemble(tmp_path)
+    assert text.startswith("# SAHA\n")
+    assert text.index("## Appendix A: WS1: pipeline") < text.index("## Appendix C: WS3: ball")
+    assert text.count("### Approach") == 2 and "\n# a shell comment\n" in text
+    assert "how to assemble" not in text and "not a package" not in text
+
+
+def test_techdoc_assembles_the_repository_sections(tmp_path):
+    out = tmp_path / "SAHA.md"
+    assert techdoc.main(["--out", str(out)]) == 0
+    text = out.read_text(encoding="utf-8")
+    assert "## Appendix A: WS1" in text and "## Appendices" in text
