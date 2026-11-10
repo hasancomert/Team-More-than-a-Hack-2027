@@ -20,6 +20,16 @@ them. In short:
   value.
 - Never upload the data to AI services (D008 already).
 
+## CI runs locally (10 November)
+
+GitHub no longer starts the CI workflow on this repository: the account's Actions billing
+would have to be raised, and the team leader chose not to pay (D023). So a red "checks" with
+"The job was not started" on a pull request is expected, and is not a failure of your code.
+
+- Before you open a PR, run `python -m saha.tools.ci`. It runs every check of the workflow
+  locally, with synthetic data only.
+- WS1 runs it again on your PR merged into `main` before the team leader merges.
+
 ## Where we are: Phase 0 is done
 
 The shared infrastructure is in the repository. It was verified on the real data, on the team

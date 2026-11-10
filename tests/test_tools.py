@@ -13,7 +13,7 @@ from saha.common import epts, frame_table, kinematics, paths, submission
 from saha.common import experiments
 from saha.common.constants import A, D, H, X
 from saha import pipeline
-from saha.tools import data_checks, eda, metric_behaviour as mb, selfcheck, techdoc
+from saha.tools import ci, data_checks, eda, metric_behaviour as mb, selfcheck, techdoc
 
 
 def test_data_checks_on_a_synthetic_bundle(full_match, use_data, tmp_path):
@@ -189,3 +189,17 @@ def test_techdoc_assembles_the_repository_sections(tmp_path):
     assert techdoc.main(["--out", str(out)]) == 0
     text = out.read_text(encoding="utf-8")
     assert "## Appendix A: WS1" in text and "## Appendices" in text
+
+
+def test_local_ci_runs_the_workflow_steps(tmp_path):
+    workflow = (paths.REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    steps = ci.steps("main", tmp_path)
+    assert [name.split(":")[0] for name, _ in steps[:2]] == ["guard", "guard"]
+    for _, command in steps:
+        assert " ".join(command[1:3]) in workflow or command[1] in workflow
+    first, second = tmp_path / "a.md", tmp_path / "b.md"
+    first.write_text("x\n")
+    second.write_text("x\n")
+    assert ci.same_text(first, second)
+    second.write_text("y\n")
+    assert not ci.same_text(first, second)
