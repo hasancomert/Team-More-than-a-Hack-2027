@@ -3,15 +3,15 @@ date: 2026-11-06
 package: ws3
 name: control-hysteresis-v1
 author: Osman (owner, runs on the data), Claude Code (code and record)
-commit:
+commit: e5b33ea
 config: configs/pipeline.toml
-public_spell_f1:
-public_spell_low:
-public_spell_high:
-public_macro_f1:
-n_possessions:
-mean_duration_s:
-d_rate:
+public_spell_f1: 0.4105
+public_spell_low: 0.28
+public_spell_high: 0.54
+public_macro_f1: 0.6307
+n_possessions: 335
+mean_duration_s: 12.8
+d_rate: 0.323
 verdict: open
 ---
 
@@ -40,15 +40,53 @@ Details and parameters: `docs/tech/ws3_visible.md`.
 
 ## Result
 
-Synthetic tests only so far. On the match: TO DO (Osman). Run these, then fill in the front matter
-from the pipeline's aggregate output:
+Tests: `tests/test_visible.py` (8, synthetic) and the full suite pass (73).
 
-- `python -m saha.visible.build`: control frames, control runs, hand-overs, coverage;
-- `python -m saha.pipeline`;
-- `python -m saha.tools.selfcheck`;
-- `python -m saha.external.score`, on WS5's DFL matches: with and without `visible`, and with
-  `nearest` at scale 1.0 and 0.5 (the two read the same nearest player, so fusing both at full
-  scale counts it twice).
+On the match (Osman's machine, 10 November, branch at e5b33ea, so `main` as of 6 November:
+`nearest` and `visible` have opinions, `deadball` and `occluded` are stubs).
+
+`python -m saha.visible.build`:
+
+| | |
+|---|---|
+| graded frames with the ball tracked | 94,214 |
+| control frames | 25,095 |
+| stretches | 134 |
+| control runs | 881 |
+| hand-overs inside a stretch | 160 |
+| frames with an opinion | 83,902 (0.891 of tracked frames) |
+| home share of the opinions | 52.8% |
+
+`python -m saha.pipeline`, next to WS1's nearest-only run on the same `main`:
+
+| | nearest only | nearest + visible |
+|---|---|---|
+| possessions | 368 | 335 |
+| mean duration | 11.7 s | 12.8 s (median 8.5 s) |
+| shorter than 2 s | | 7 |
+| D rate | 32.3% | 32.3% |
+| home share | 57.5% | 59.1% |
+| public spellF1 (check only) | 0.4000 | 0.4105 [0.28–0.54] |
+
+The decoder makes fewer, longer possessions, as intended; the D rate is unchanged because WS3
+writes no `p_dead`. The public difference is far inside the bootstrap interval and decides nothing.
+
+`python -m saha.external.score --matches J03WPY --bootstrap 200` (WS5's DFL harness, degraded to
+our conditions, seed 0, raw DFL labels; deadball and occluded are stubs):
+
+| sources | spellF1 | interval | macroF1 | alive/dead F1 | team acc | possessions pred / gt |
+|---|---|---|---|---|---|---|
+| nearest + visible | 0.2284 | 0.20–0.26 | 0.4997 | 0.633 | 0.856 | 241 / 421 |
+| nearest alone | 0.2335 | 0.20–0.26 | 0.4946 | 0.633 | 0.844 | 259 / 421 |
+| visible alone | 0.1328 | 0.10–0.17 | 0.3618 | 0.716 | 0.780 | 97 / 421 |
+
+- Team accuracy goes up (0.844 → 0.856), spellF1 does not move beyond the noise.
+- The comparison is biased against v1: DFL's raw possession changes on every touch (421
+  possessions, median 3.8 s, docs/tech/ws5_external.md), and v1 exists to not do that. Until WS5
+  relabels DFL to a "controlled possession" definition, these numbers cannot show whether the
+  hysteresis helps.
+
+Still to do: the other six DFL matches; `nearest` at scale 0.5; the same runs on relabelled DFL.
 
 ## Decision
 
