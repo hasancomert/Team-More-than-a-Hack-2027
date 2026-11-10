@@ -1,0 +1,120 @@
+# WS1: data layer, evidence interface, combiner and reproduction
+
+Owner: Hasan (team leader). Code: `saha/common/`, `saha/combine/`, `saha/nearest/`,
+`saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of 8 November; the final numbers come from
+FINAL_CHOICE.md.
+
+## Approach
+
+Each frame raises two questions: is the ball dead, and, if it is alive, which team has it. Each
+package answers one of them on its own frames, as evidence. WS1 reads the match for everyone,
+fuses the evidence, and segments the match into possessions.
+
+**The data layer** (`saha/common`) gives one row per video frame.
+
+- **Alignment.** An ATD `frame_id` is video frame `frame_id − 1`. A Smart Tagging time is frame
+  `round(seconds × 25)`. Homography rows are already video frames.
+- **Parsing.** The parser follows the EPTS layout that the metadata declares. Fed into the
+  official baseline's smoothing, it reproduces the four published baseline files with 0
+  differing frames.
+- **Speeds.** The players' speed channel is in m/s, as the displacements confirm (D012). The
+  ball's channel has a value on only 7.8% of the frames where the ball is tracked, and does not
+  follow the ball (D015). So every package takes the ball's speed from its positions
+  (`saha.common.kinematics`).
+
+**The evidence interface.** Every package writes, per frame:
+
+- `p_dead`, the probability that the ball is dead;
+- `p_home`, the probability that Barcelona has the ball, given that it is alive;
+- `weight`, how far to trust that row; 0 means no opinion.
+
+Values are quantised to 1e-4. Packages write only on their own frames (TEAM.md, boundaries).
+
+**Fusion.** For each frame, the combiner adds every source's log-odds, multiplied by its weight
+and its scale in `configs/pipeline.toml`: naive Bayes, with the weights as tempering exponents.
+It works in exact integers (1e-10 nats per step, with logits tabulated in milli-nats), so the
+result is the same on every machine.
+
+**Segmentation.** A three-state Viterbi over H, A and D.
+
+- The per-frame scores are the exact doubled log-probabilities of the three states, with the
+  normaliser n = 2 log(2 cosh(home/2)) on H and A, read from a milli-nat table. Without it, a
+  confident `p_home` also pushed the alive states against D (found by WS4).
+- The prior P(dead) = 1/3 makes the three states tie on a frame without evidence.
+- Changing state costs `cost_switch` (H ↔ A), `cost_to_dead` or `cost_from_dead`. A possession
+  changes only where the evidence for the change, summed over the frames it covers, outweighs
+  its cost.
+- Ties are broken in a fixed order.
+
+**Why this design.**
+
+- The metric matches whole possessions and punishes flicker. A per-frame classifier flickers;
+  switching costs turn evidence into few, long possessions.
+- Evidence files let five people work in parallel and be combined without reconciling five
+  pipelines.
+- Exact integer arithmetic makes the submission byte-identical across machines.
+
+**`nearest`** is the official nearest-player baseline, re-expressed as evidence: `p_home` 0.8
+for the nearest player's team where the ball is tracked, and `p_dead` from whether a ball has been
+seen within 2 s. It is the reference and the fallback.
+
+## Assets
+
+| asset | use |
+|---|---|
+| ATD tracking | positions of the players and the ball; the players' speed channel (m/s) |
+| the ATD ball speed channel | dropped: mostly empty, and it does not follow the ball (D015) |
+| Smart Tagging, homography, video | not used by WS1 (see the package appendices) |
+
+## Training data
+
+WS1 trains nothing.
+
+- **Prior.** The prior comes from the model's definition.
+- **Costs.** The switching costs are reasoned placeholders (35 nats). They are to be tuned on
+  WS5's external matches once those mean what ours mean (D017).
+- **The label-free self-check** (`python -m saha.tools.selfcheck`) hides ball touches and checks
+  that the decoder recovers them. It is a check only: it never chose a value.
+
+## Possession rules
+
+- **Hand-overs.** The combiner implements none of its own: H and A change where the evidence
+  outweighs `cost_switch`.
+- **Dead ball.** D splits possessions, and WS2's decision is reproduced frame for frame (D022).
+- **Short possessions.** They survive only where the evidence is strong enough to pay for two
+  changes.
+- **Outside the graded halves.** The answer there is X. Inside them, the decoder always answers
+  H, A or D.
+
+## Reproduction
+
+```bash
+python -m saha.pipeline --fresh --data <path>
+```
+
+- **Environment.** Python 3.11 with the pins in `requirements-saha.txt`.
+- **Determinism.**
+    - Evidence is quantised.
+    - The combiner works in integers.
+    - Inputs are read in sorted order.
+    - Every seed is fixed.
+- **Checked on two machines.** The SAHA.csv SHA256 matched on two members' machines on 6 and on
+  7 November.
+- **CI.** CI runs the tests, the guard and the official evaluation on every pull request.
+
+## How the team worked with the data
+
+- **Data stays local.** The match data and anything derived from it frame by frame never
+  entered git, cloud storage or chat. A git guard and CI enforce it.
+- **The public 5 minutes** checked that the pipeline was correct and chose nothing.
+- **AI assistants (Claude Code).** They wrote code and saw aggregate output only: counts,
+  percentages, percentiles and scores. They never saw data or frame-level values (D008, D017).
+
+## Limitations
+
+- **Placeholder costs.** The switching costs stay reasoned placeholders until WS5's relabelled
+  DFL set exists.
+- **Independent sources.** The fusion assumes them, but `nearest` and WS3 read the same nearest
+  player. The scale of `nearest` is set on external data.
+- **No abstention.** The decoder never answers X inside a possession, where X would be free.
+- **WS2's decision is final.** It overrides every other `p_dead` (D022).
