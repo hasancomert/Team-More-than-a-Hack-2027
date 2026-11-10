@@ -179,6 +179,5 @@ Still open:
    check, not a tuning.
 2. **One external set, with WS5.** Move the SkillCorner loader from `saha/deadball/skillcorner.py`
    into `saha/external`, together with Seyyid.
-3. **The whistle needs a team decision** (D006). Using it would require the tactical video
-   (5.2 GB) and ffmpeg on every machine that reproduces the submission, plus a determinism check:
-   the same whistle times on two machines. Until the team decides, the whistle stays off.
+3. **The whistle stays off in the submission** (D025, decided on 10 November). The detector
+   and its fingerprint tool stay in the code, off by default.

@@ -38,7 +38,7 @@ TODO: one table covering:
   (D015);
 - Smart Tagging;
 - the homography;
-- the video and the whistle;
+- the video: not used, because the whistle stays off (D025);
 - each external dataset, with its licence.
 
 ## Missing and noisy tracking
@@ -82,6 +82,8 @@ TODO:
 - No hand labels; the public 5 minutes checked the pipeline and nothing else.
 - The match data never left members' machines.
 - AI assistants wrote code and saw aggregate output only (D008, D017).
+- RULES.md allows learning without human labels on the provided game. We kept the stricter
+  reading of the organizers' later clarification anyway (D024).
 
 ## Appendices
 
