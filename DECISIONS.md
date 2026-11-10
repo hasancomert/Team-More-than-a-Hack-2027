@@ -176,3 +176,15 @@ come here (CLAUDE.md).
     - The pipeline tests run WS2's builder without its classifier (`SAHA_DEADBALL_MODEL=none`).
       The four-player synthetic match is no input for a model trained on real matches, and
       `tests/test_deadball.py` tests the package itself.
+
+## 2026-11-10
+
+- **D023 (team leader, 10 November) GitHub Actions is off; the CI runs locally.** Since 10
+  November GitHub does not start the workflow on this private repository: the account's Actions
+  billing would have to be raised, and the team leader chose not to pay. So:
+    - `python -m saha.tools.ci` runs every step of `.github/workflows/ci.yml` locally, with
+      synthetic data and public files only.
+    - Every author runs it before opening a PR. WS1 runs it again on the PR merged into
+      `main`, in a cloud session, and reports the result before the team leader merges.
+    - A red "checks" saying "The job was not started" is expected. It is not a failure of the
+      code.

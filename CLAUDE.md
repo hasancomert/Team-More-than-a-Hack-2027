@@ -162,10 +162,14 @@ exactly 199,319 rows and exactly these columns:
 - Keep PRs small. Each needs at least one approval from another member.
 - Changes to `saha/common/` also need WS1's approval.
 - Before opening a PR:
-    1. `python -m pytest`
+    1. `python -m saha.tools.ci`: every check of the CI workflow, run locally. GitHub Actions
+       does not run on this repository (DECISIONS D023). A red "checks" with "The job was not
+       started" is expected. WS1 runs the same checks on the merge result before the team
+       leader merges.
     2. `python -m saha.pipeline`, if you have the data
     3. an experiment record
-- The hooks block the following (`python -m saha.tools.setup_dev` installs them, CI re-checks):
+- The hooks block the following. `python -m saha.tools.setup_dev` installs them, and
+  `python -m saha.tools.ci` checks them again:
     - `data/`, `cache/`, `submissions/`
     - data-dump formats and files over 500 KB, except a model trained only on external data
       under `saha/<package>/models/` (up to 5 MB, with its manifest: DECISIONS D020)
@@ -209,6 +213,7 @@ python -m saha.common.evidence              # validate every evidence file
 python -m saha.common.experiments           # every experiment in one table
 python -m saha.tools.selfcheck              # label-free combiner check (after a pipeline run)
 python -m pytest                            # tests (synthetic data only)
+python -m saha.tools.ci                     # every CI check, locally (DECISIONS D023)
 python evaluation/validate_submission.py submissions/SAHA.csv
 python evaluation/run_evaluation.py --bootstrap 1000
 ```
