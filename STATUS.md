@@ -157,8 +157,9 @@ the list that stood here. It does the following:
 - **Documentation:** `docs/tech/ws2_deadball.md` gives the source and licence of every number.
 - **Decoder:** WS2's decoder stays in `saha/deadball`, and the combiner reproduces its decision
   frame for frame (D022).
-- **Reproduced on 7 November:** the team leader's machine gives the same SAHA.csv SHA256 as WS2's
-  (`081f57c1…`), classifier included.
+- **Reproduced on two machines:** the team leader's machine gives the same SAHA.csv SHA256 as
+  WS2's. That held on 7 November with the first classifier (`081f57c1…`) and on 10 November with
+  the second one, trained with the hidden ball (`3b74ae89…`).
 
 Still open:
 

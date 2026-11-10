@@ -16,7 +16,7 @@ How to read the numbers:
 | package | owner | state | evidence on our match |
 |---|---|---|---|
 | WS1 combiner, `nearest` | Hasan | on `main` | `p_home` where the ball is tracked (the official baseline, as evidence) |
-| WS2 dead ball | Alparslan | PR #14: draft, approved; waits for "Ready for review" and for the team leader's run of the new model | `p_dead` on every graded frame |
+| WS2 dead ball | Alparslan | PR #14: draft, approved, reproduced on two machines; waits for "Ready for review" | `p_dead` on every graded frame |
 | WS3 ball tracked | Osman | PR #12: still to run on the data and on WS5's matches; experiment record to fill in | `p_home` where the ball is tracked |
 | WS4 ball missing | Baki | PR #7: draft, no activity since 5 November; the Smart Tagging part must change (D017) | `p_home` where the ball is missing |
 | WS5 external data | Seyyid | on `main` (PR #9) | DFL validation harness; the relabelling is next |
@@ -55,7 +55,7 @@ How to read the numbers:
 |---|---|---|---|---|---|---|
 | `main` (`nearest` only) | `9fedd7df…` | 368 | 11.7 / 8.2 | 0 | 32.3% | 0.40 [0.26–0.54] |
 | + WS2, first classifier | `081f57c1…` | 305 | 10.3 / 6.3 | 24 | 50.4% | 0.48 [0.32–0.67] |
-| + WS2, second classifier | `3b74ae89…` | 293 | 11.2 / – | – | 48.3% | 0.48 [0.31–0.65] |
+| + WS2, second classifier | `3b74ae89…` | 293 | 11.2 / 6.7 | 15 | 48.3% | 0.48 [0.31–0.65] |
 
 The public intervals overlap, so the public window says nothing about which version is better.
 
@@ -63,7 +63,7 @@ Reproduction, byte for byte:
 
 - `9fedd7df…`: the team leader and Seyyid.
 - `081f57c1…`: Alparslan and the team leader.
-- `3b74ae89…`: Alparslan so far. The team leader's run is pending.
+- `3b74ae89…`: Alparslan and the team leader (10 November).
 
 ## Risks before the freeze (12 November)
 
