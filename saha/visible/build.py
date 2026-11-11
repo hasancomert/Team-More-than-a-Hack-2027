@@ -2,8 +2,8 @@
 
     python -m saha.visible.build          -> cache/evidence/visible.parquet
 
-v2, touches confirmed by the team that takes the ball, written only on graded frames where the ball
-is tracked (TEAM.md, boundaries). p_dead stays NaN everywhere: that question is WS2's.
+v2.1, touches confirmed by the team that takes the ball, written only on graded frames where the
+ball is tracked (TEAM.md, boundaries). p_dead stays NaN everywhere: that question is WS2's.
 
 1. Touches. A frame is a touch frame for a team when that team's nearest player is the closest to
    the ball and within TOUCH_M of it, at any ball speed and duels included. A touch is a run of
@@ -26,7 +26,10 @@ is tracked (TEAM.md, boundaries). p_dead stays NaN everywhere: that question is 
      - P_HOLD while the ball travels between two of its touches (a pass, a dribble);
      - P_LOOSE while the ball travels to the other team, on the other team's unconfirmed touches,
        and after the last touch of a stretch.
-   Frames before the first confirmed possession of a stretch have no opinion.
+   With FIRST_TOUCH_OWNS, a stretch's first touch starts a possession without confirmation: a
+   restart is taken by the team with the ball, and after a gap nobody else has touched it yet.
+   Frames before a stretch's first possession have no opinion. Every frame with an opinion has
+   WEIGHT.
 
 4. Resets. The state is forgotten at the start of each graded half and across a ball gap longer than
    RESET_GAP: what happened while the ball was missing is WS4's question.
@@ -34,7 +37,8 @@ is tracked (TEAM.md, boundaries). p_dead stays NaN everywhere: that question is 
 The parameters come from football and physics reasoning, not from the public 5 minutes (CLAUDE.md,
 rule 2). They are checked and tuned on WS5's external data (`python -m saha.external.score`),
 never on this match (D016). v1 (control runs with hysteresis) and why it changed:
-experiments/20261106_ws3_control-hysteresis-v1.md, experiments/20261111_ws3_touch-confirm-v2.md.
+experiments/20261106_ws3_control-hysteresis-v1.md, experiments/20261111_ws3_touch-confirm-v2.md;
+v2.1's two settings: experiments/20261111_ws3_first-touch-weight-v21.md.
 
 Read the match only through saha.common and write only through saha.common.evidence. Everything
 printed is aggregate: counts and shares. Rules: CLAUDE.md.
@@ -53,7 +57,7 @@ JOIN = 3                 # frames (0.12 s): same-team touches this close are one
 # -- hand-overs --------------------------------------------------------------------------------
 CONFIRM_FRAMES = 6       # frames (0.24 s): longer than a deflection (1-3 frames at 25 fps)
 CONFIRM_TOUCHES = 2      # a second touch by the same team: a completed pass or a carry
-FIRST_TOUCH_OWNS = False # a stretch's first touch starts a possession unconfirmed (a restart is
+FIRST_TOUCH_OWNS = True  # a stretch's first touch starts a possession unconfirmed (a restart is
                          # taken by the team with the ball; after a gap, nobody else has touched)
 # -- resets ------------------------------------------------------------------------------------
 RESET_GAP = FPS // 2     # frames: a longer ball gap forgets the last team (WS4's frames)
@@ -61,14 +65,15 @@ RESET_GAP = FPS // 2     # frames: a longer ball gap forgets the last team (WS4'
 P_TOUCH = 0.9            # the team with the ball touches it; not 1: the tracker swaps players
 P_HOLD = 0.8             # the ball travels between two touches of the same team
 P_LOOSE = 0.6            # the ball is on its way to the other team, or nobody touches it again
-WEIGHT = 1.0
+WEIGHT = 2.0             # twice nearest's per-frame weight: v2.1 reads the same player, with the
+                         # possession rules on top (experiments/20261111_ws3_first-touch-weight-v21.md)
 
 HOME, AWAY, NOBODY = 0, 1, -1
 
 
 def params():
     """The parameters, as recorded in the evidence file's metadata."""
-    return {"version": 2, "TOUCH_M": TOUCH_M, "JOIN": JOIN, "CONFIRM_FRAMES": CONFIRM_FRAMES,
+    return {"version": "2.1", "TOUCH_M": TOUCH_M, "JOIN": JOIN, "CONFIRM_FRAMES": CONFIRM_FRAMES,
             "CONFIRM_TOUCHES": CONFIRM_TOUCHES, "FIRST_TOUCH_OWNS": FIRST_TOUCH_OWNS,
             "RESET_GAP": RESET_GAP, "P_TOUCH": P_TOUCH,
             "P_HOLD": P_HOLD, "P_LOOSE": P_LOOSE, "WEIGHT": WEIGHT}
