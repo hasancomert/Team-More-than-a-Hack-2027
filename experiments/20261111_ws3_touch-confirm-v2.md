@@ -89,6 +89,30 @@ the noise of one match):
 - With v2, `nearest` helps less the more of it there is: v2 and `nearest` read the same nearest
   player, and the fusion counts it twice. At scale 0 v2 is 0.048 above today's configuration.
 
+Second DFL match, J03WQQ, same setup:
+
+| visible | nearest 1.0 | 0.5 | 0.0 |
+|---|---|---|---|
+| v1 | 0.3318 | 0.3212 | 0.2893 |
+| v2 base | 0.3494 | 0.3502 | 0.3388 |
+| v2, 3 touches | 0.3445 | 0.3485 | 0.3394 |
+| v2, 10 frames | 0.3446 | 0.3473 | 0.3467 |
+| v2, 1.0 m | 0.3491 | 0.3464 | 0.3256 |
+| v2, 3 touches and 10 frames | 0.3460 | 0.3497 | 0.3444 |
+
+Mean of the two matches:
+
+| visible | nearest 1.0 | 0.5 | 0.0 |
+|---|---|---|---|
+| v1 | 0.3412 | 0.3298 | 0.2897 |
+| **v2 base** | 0.3596 | **0.3665** | **0.3688** |
+
+- v2 beats v1 at every scale on both matches: +0.018 to +0.050 on J03WQQ.
+- The best scale of `nearest` does not agree between the matches (0 on J03WPY, 0.5 on J03WQQ).
+  Their two-match means differ by 0.002, far inside the noise; 0.5 varies less between matches.
+- The variant that looked best on J03WPY (touch within 1.0 m) is among the worst on J03WQQ. This
+  is why no variant was picked from one match.
+
 On our match (checks only), `main` of 10 November with WS2's second classifier:
 
 | | `main` (WS1's report 2) | + v2, nearest 1.0 | + v2, nearest 0.0 |
@@ -106,11 +130,11 @@ On our match (checks only), `main` of 10 November with WS2's second classifier:
 
 Open:
 
-- Adopt v2 in place of v1 (this PR).
-- Proposal for WS1: `nearest` at scale 0 in `configs/pipeline.toml`, once a second DFL match
-  agrees. TEAM.md: "once WS3 beats it on WS5's validation data, WS1 lowers or zeroes its scale".
-- Keep v2's base values: the variants differ by less than one match's noise. The touch distance
-  (1.0 vs 1.5 m) is the one to check on more matches.
+- Adopt v2 in place of v1 (this PR): above v1 at every scale on two DFL matches.
+- Proposal for WS1: lower `nearest` in `configs/pipeline.toml` to 0.5. Scales 0.5 and 0 tie on
+  the two-match mean (0.3665 and 0.3688); 0.5 is the smaller change and varies less between
+  matches. TEAM.md: "once WS3 beats it on WS5's validation data, WS1 lowers or zeroes its scale".
+- Keep v2's base values: no variant is better on both matches.
 - Everything here uses DFL's raw labels; WS5's relabelling may change the ranking of the variants.
 
 The public 5 minutes do not decide (CLAUDE.md, rule 2).
