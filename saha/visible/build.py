@@ -2,32 +2,39 @@
 
     python -m saha.visible.build          -> cache/evidence/visible.parquet
 
-v1, control with hysteresis, written only on graded frames where the ball is tracked (TEAM.md,
-boundaries). p_dead stays NaN everywhere: that question is WS2's.
+v2, touches confirmed by the team that takes the ball, written only on graded frames where the ball
+is tracked (TEAM.md, boundaries). p_dead stays NaN everywhere: that question is WS2's.
 
-1. Control. A frame is a control frame for a team when its nearest player is within CONTROL_M of a
-   slow ball (CONTROL_SPEED, the ball's speed from its positions, D015) and the nearest opponent is
-   at least CONTEST_M further away. A duel, with both teams at the ball, is nobody's control. A
-   control run is MIN_CONTROL or more consecutive control frames of one team. Shorter runs (a
-   deflection, a touch in passing) are ignored: CHALLENGE.md says a touch without control is not a
-   change of possession.
+1. Touches. A frame is a touch frame for a team when that team's nearest player is the closest to
+   the ball and within TOUCH_M of it, at any ball speed and duels included. A touch is a run of
+   touch frames of one team; runs of the same team at most JOIN frames apart are one touch (the
+   tracker jitters around the 1.5 m line, and no pass comes back that fast).
 
-2. Hysteresis. CHALLENGE.md: a loose or contested ball stays with the last team, and possession
-   changes only when the opponent gains control. So between two control runs the ball belongs to
-   the team of the first one:
-     - P_HOLD when the next run is the same team: a pass, a dribble, a first touch.
-     - P_LOOSE when the next run is the other team: the hand-over happens at the start of the
-       opponent's run, and before it the ball may already have been lost.
-   On a control run itself, P_CONTROL for its team.
+2. Hand-overs. CHALLENGE.md: possession changes only when the opponent gains control, and a touch
+   or a deflection is not enough. So a touch by the team without the ball is a candidate, and it is
+   confirmed when, before the team with the ball touches it again,
+     - that touch lasts CONFIRM_FRAMES or more (the player keeps the ball), or
+     - the same team touches the ball a second time (a pass completed, a carry).
+   An unconfirmed candidate is a deflection or a lost duel: the ball stays with the last team. A
+   confirmed hand-over is placed at the candidate's first frame, the new team's first touch after
+   the old team's last one. On WS5's DFL match that is where the labelled change is (median 2
+   frames off), where v1's start of a control run was 19 frames late.
 
-3. Resets. The state is forgotten at the start of each graded half and across a ball gap longer than
-   RESET_GAP: what happened while the ball was missing is WS4's question. Frames before the first
-   control run of a stretch have no opinion; frames after its last one get P_LOOSE for that team.
+3. Probabilities. On each tracked graded frame after the first confirmed possession of a stretch,
+   for the team that has the ball:
+     - P_TOUCH on its own touches;
+     - P_HOLD while the ball travels between two of its touches (a pass, a dribble);
+     - P_LOOSE while the ball travels to the other team, on the other team's unconfirmed touches,
+       and after the last touch of a stretch.
+   Frames before the first confirmed possession of a stretch have no opinion.
+
+4. Resets. The state is forgotten at the start of each graded half and across a ball gap longer than
+   RESET_GAP: what happened while the ball was missing is WS4's question.
 
 The parameters come from football and physics reasoning, not from the public 5 minutes (CLAUDE.md,
-rule 2); the control definition is the touch of saha.tools.selfcheck and WS4, so that the packages
-agree on what "at the ball" means. They are checked and tuned on WS5's external data
-(`python -m saha.external.score`), never on this match (D016).
+rule 2). They are checked and tuned on WS5's external data (`python -m saha.external.score`),
+never on this match (D016). v1 (control runs with hysteresis) and why it changed:
+experiments/20261106_ws3_control-hysteresis-v1.md, experiments/20261111_ws3_touch-confirm-v2.md.
 
 Read the match only through saha.common and write only through saha.common.evidence. Everything
 printed is aggregate: counts and shares. Rules: CLAUDE.md.
@@ -37,20 +44,21 @@ import argparse
 
 import numpy as np
 
-from saha.common import evidence, frame_table, kinematics, paths
+from saha.common import evidence, frame_table, paths
 from saha.common.constants import FPS
 
-# -- control (the touch of saha.tools.selfcheck and WS4) ---------------------------------------
-CONTROL_M = 1.5          # metres: a player this close to the ball has it at his feet
-CONTROL_SPEED = 5.0      # m/s; faster is a pass, a shot or a clearance, not a ball under control
-CONTEST_M = 1.0          # metres: an opponent within this much of the controller makes it a duel
-MIN_CONTROL = 6          # frames (0.24 s): receiving and keeping the ball, not a deflection
-# -- hysteresis --------------------------------------------------------------------------------
+# -- touches -----------------------------------------------------------------------------------
+TOUCH_M = 1.5            # metres: a stride plus the ball's reach; the touch of selfcheck and WS4
+JOIN = 3                 # frames (0.12 s): same-team touches this close are one touch
+# -- hand-overs --------------------------------------------------------------------------------
+CONFIRM_FRAMES = 6       # frames (0.24 s): longer than a deflection (1-3 frames at 25 fps)
+CONFIRM_TOUCHES = 2      # a second touch by the same team: a completed pass or a carry
+# -- resets ------------------------------------------------------------------------------------
 RESET_GAP = FPS // 2     # frames: a longer ball gap forgets the last team (WS4's frames)
-P_CONTROL = 0.9          # a team controls the ball; not 1: the tracker swaps and merges players
-P_HOLD = 0.8             # between two runs of the same team: the ball travels between teammates
-P_LOOSE = 0.6            # between runs of different teams, or after the last run: still the last
-                         # team's, but the hand-over is near
+# -- output ------------------------------------------------------------------------------------
+P_TOUCH = 0.9            # the team with the ball touches it; not 1: the tracker swaps players
+P_HOLD = 0.8             # the ball travels between two touches of the same team
+P_LOOSE = 0.6            # the ball is on its way to the other team, or nobody touches it again
 WEIGHT = 1.0
 
 HOME, AWAY, NOBODY = 0, 1, -1
@@ -58,8 +66,8 @@ HOME, AWAY, NOBODY = 0, 1, -1
 
 def params():
     """The parameters, as recorded in the evidence file's metadata."""
-    return {"CONTROL_M": CONTROL_M, "CONTROL_SPEED": CONTROL_SPEED, "CONTEST_M": CONTEST_M,
-            "MIN_CONTROL": MIN_CONTROL, "RESET_GAP": RESET_GAP, "P_CONTROL": P_CONTROL,
+    return {"version": 2, "TOUCH_M": TOUCH_M, "JOIN": JOIN, "CONFIRM_FRAMES": CONFIRM_FRAMES,
+            "CONFIRM_TOUCHES": CONFIRM_TOUCHES, "RESET_GAP": RESET_GAP, "P_TOUCH": P_TOUCH,
             "P_HOLD": P_HOLD, "P_LOOSE": P_LOOSE, "WEIGHT": WEIGHT}
 
 
@@ -77,17 +85,12 @@ def nearest_by_team(ball_m, players_m, slot_team):
     return out
 
 
-def control_team(ball_m, players_m, slot_team, usable):
-    """(N,) int8: the team in control of the ball on each frame, NOBODY where no team is."""
+def touch_team(ball_m, players_m, slot_team, usable):
+    """(N,) int8: the team touching the ball on each frame, NOBODY where no team is."""
     by_team = nearest_by_team(ball_m, players_m, slot_team)
-    team = np.argmin(by_team, axis=1)          # equal distances are a duel, removed below
-    own = by_team.min(axis=1)
-    other = by_team.max(axis=1)
-    speed = kinematics.displacement_speed(ball_m)
-    with np.errstate(invalid="ignore"):        # NaN speed or inf - inf: not control
-        control = (usable & (own <= CONTROL_M) & (speed <= CONTROL_SPEED)
-                   & (other - own >= CONTEST_M))
-    return np.where(control, team, NOBODY).astype(np.int8)
+    team = np.argmin(by_team, axis=1)          # equal distances go to home; both touch anyway
+    touching = usable & (by_team.min(axis=1) <= TOUCH_M)
+    return np.where(touching, team, NOBODY).astype(np.int8)
 
 
 def runs(values, start, stop):
@@ -112,29 +115,74 @@ def stretches(usable, half):
     return [(int(part[0]), int(part[-1]) + 1) for part in np.split(index, cut)]
 
 
+def touches(team, start, stop):
+    """[(a, b, team)]: the touches in team[start:stop], same-team runs within JOIN joined."""
+    out = []
+    for a, b, k in runs(team, start, stop):
+        if k == NOBODY:
+            continue
+        if out and out[-1][2] == k and a - out[-1][1] <= JOIN:
+            out[-1] = (out[-1][0], b, k)
+        else:
+            out.append((a, b, k))
+    return out
+
+
+def hand_overs(events):
+    """[(frame, team)]: where each confirmed possession starts, from a stretch's touches."""
+    owner, candidate, count, out = NOBODY, None, 0, []
+    for a, b, k in events:
+        if k == owner:
+            candidate, count = None, 0     # the team with the ball touched it again
+            continue
+        if candidate is None or candidate[1] != k:
+            candidate, count = (a, k), 0
+        count += 1
+        if b - a >= CONFIRM_FRAMES or count >= CONFIRM_TOUCHES:
+            out.append(candidate)
+            owner, candidate, count = k, None, 0
+    return out
+
+
 def toward(team, p):
     """P(home) when `team` has the ball with probability p."""
     return p if team == HOME else 1.0 - p
 
 
-def hysteresis(control, usable, half):
-    """(p_home, counts): P(home) on usable frames from the control runs, NaN where no opinion."""
-    p_home = np.full(len(control), np.nan)
-    counts = {"stretches": 0, "control runs": 0, "hand-overs": 0}
+def possession(team, usable, half):
+    """(p_home, counts): P(home) on usable frames from the confirmed touches, NaN = no opinion."""
+    p_home = np.full(len(team), np.nan)
+    counts = {"stretches": 0, "touches": 0, "possessions": 0, "hand-overs": 0,
+              "unconfirmed touches": 0}
     for start, stop in stretches(usable, half):
         counts["stretches"] += 1
-        state, cursor = NOBODY, start
-        for a, b, team in runs(control, start, stop):
-            if team == NOBODY or b - a < MIN_CONTROL:
+        events = touches(team, start, stop)
+        starts = hand_overs(events)
+        counts["touches"] += len(events)
+        counts["possessions"] += len(starts)
+        counts["hand-overs"] += max(len(starts) - 1, 0)
+        if not starts:
+            continue
+        begin = dict(starts)
+        owner = NOBODY
+        for i, (a, b, k) in enumerate(events):
+            if a in begin:
+                owner = begin[a]
+            if owner == NOBODY:
                 continue
-            if state != NOBODY:
-                p_home[cursor:a] = toward(state, P_HOLD if team == state else P_LOOSE)
-                counts["hand-overs"] += int(team != state)
-            p_home[a:b] = toward(team, P_CONTROL)
-            counts["control runs"] += 1
-            state, cursor = team, b
-        if state != NOBODY:
-            p_home[cursor:stop] = toward(state, P_LOOSE)
+            if k == owner:
+                p_home[a:b] = toward(owner, P_TOUCH)
+            else:
+                p_home[a:b] = toward(owner, P_LOOSE)
+                counts["unconfirmed touches"] += 1
+            # the frames until the next touch: a pass between teammates, or the ball on its way
+            # to the other team (whose touch then starts a possession or is a deflection)
+            if i + 1 < len(events):
+                a2, _, k2 = events[i + 1]
+                held = k == owner and k2 == owner
+                p_home[b:a2] = toward(owner, P_HOLD if held else P_LOOSE)
+            else:
+                p_home[b:stop] = toward(owner, P_LOOSE)
     p_home[~usable] = np.nan
     return p_home, counts
 
@@ -142,13 +190,13 @@ def hysteresis(control, usable, half):
 def evidence_and_counts(table):
     """((p_dead, p_home, weight), counts) over every video frame of the table."""
     usable = table.graded & table.ball_visible
-    control = control_team(table.ball_xy_m(), table.players_xy_m(), table.slot_team, usable)
-    p_home, counts = hysteresis(control, usable, table.half)
+    team = touch_team(table.ball_xy_m(), table.players_xy_m(), table.slot_team, usable)
+    p_home, counts = possession(team, usable, table.half)
     p_dead, _, weight = evidence.empty(table.n_frames)
     has = np.isfinite(p_home)
     weight[has] = WEIGHT
     counts = {"graded frames, ball tracked": int(usable.sum()),
-              "control frames": int((control != NOBODY).sum()), **counts,
+              "touch frames": int((team != NOBODY).sum()), **counts,
               "frames with an opinion": int(has.sum())}
     return (p_dead, p_home.astype(np.float32), weight), counts
 
