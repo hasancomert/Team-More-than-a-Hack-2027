@@ -108,7 +108,13 @@ lowering `nearest` is not met either.
 
 ## Decision
 
-Rejected: `nearest` stays at 1.0. The rule was fixed before the runs, and the five matches WS3 did
-not use do not support the change. It is not revisited before the feature freeze. After it, only
-WS5's relabelled DFL data could reopen it. The public 5 minutes played no part (CLAUDE.md,
-rule 2).
+Rejected, with v2: `nearest` stays at 1.0 with v2. The rule was fixed before the runs, and the
+five matches WS3 did not use do not support the change. The public 5 minutes played no part
+(CLAUDE.md, rule 2).
+
+**Update, the same evening.**
+
+- **The question was reopened.** WS3 v2.1 made WS3's evidence louder, and that reopened it. With
+  v2.1, `nearest` at 0.5 is adopted: experiments/20261111_ws1_nearest-half-with-v21.md.
+- **This test also changes.** On labels closer to CHALLENGE.md's controlled possession, 0.5 also
+  helps v2 (+0.0115, ahead on 6 of 7). This test used raw labels only.

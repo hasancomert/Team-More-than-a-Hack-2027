@@ -115,6 +115,8 @@ python -m saha.pipeline --fresh --data <path>
 - **Placeholder costs.** The switching costs stay reasoned placeholders until WS5's relabelled
   DFL set exists.
 - **Independent sources.** The fusion assumes them, but `nearest` and WS3 read the same nearest
-  player. The scale of `nearest` is set on external data.
+  player. So `nearest` runs at 0.5 next to WS3 v2.1, which writes weight 2. That choice was made
+  on WS5's seven DFL matches, with a rule fixed before the runs, and it held on raw and on
+  controlled labels (experiments/20261111_ws1_nearest-half-with-v21.md).
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.
 - **WS2's decision is final.** It overrides every other `p_dead` (D022).
