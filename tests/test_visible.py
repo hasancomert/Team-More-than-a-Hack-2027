@@ -88,7 +88,8 @@ def test_a_deflection_is_not_a_change_of_possession():
     assert counts["hand-overs"] == 0 and counts["unconfirmed touches"] == 1
 
 
-def test_no_opinion_before_the_first_possession_and_off_the_usable_frames():
+def test_no_opinion_before_the_first_possession_and_off_the_usable_frames(monkeypatch):
+    monkeypatch.setattr(visible, "FIRST_TOUCH_OWNS", False)    # confirmation from the start
     short = visible.CONFIRM_FRAMES - 1
     team = team_of((NOBODY, 8), (AWAY, short), (NOBODY, 6), (HOME, 10), (NOBODY, 6))
     usable, half = everywhere(len(team))
@@ -100,7 +101,29 @@ def test_no_opinion_before_the_first_possession_and_off_the_usable_frames():
     assert counts["possessions"] == 1
 
 
-def test_a_long_gap_or_a_new_half_forgets_the_last_team():
+def test_the_first_touch_of_a_stretch_can_start_a_possession(monkeypatch):
+    short = visible.CONFIRM_FRAMES - 1
+    team = team_of((NOBODY, 8), (AWAY, short), (NOBODY, 6), (HOME, 10), (NOBODY, 6))
+    monkeypatch.setattr(visible, "FIRST_TOUCH_OWNS", True)
+    p_home, counts = visible.possession(team, *everywhere(len(team)))
+    assert np.isnan(p_home[:8]).all()
+    assert (p_home[8:8 + short + 6] < 0.5).all()                       # away's from its touch
+    assert (p_home[8 + short + 6:] > 0.5).all()                        # home's long touch
+    assert counts["possessions"] == 2 and counts["hand-overs"] == 1
+
+    # after a long gap the first touch starts a fresh possession, not a hand-over
+    gap = visible.RESET_GAP + 1
+    team = team_of((HOME, 10), (NOBODY, gap), (AWAY, short), (NOBODY, 5))
+    usable, half = everywhere(len(team))
+    usable[10:10 + gap] = False
+    p_home, counts = visible.possession(team, usable, half)
+    assert counts["stretches"] == 2 and counts["possessions"] == 2
+    assert counts["hand-overs"] == 0
+    assert (p_home[10 + gap:] < 0.5).all()
+
+
+def test_a_long_gap_or_a_new_half_forgets_the_last_team(monkeypatch):
+    monkeypatch.setattr(visible, "FIRST_TOUCH_OWNS", False)    # confirmation from the start
     gap = visible.RESET_GAP + 1
     short = visible.CONFIRM_FRAMES - 1
     team = team_of((HOME, 10), (NOBODY, gap), (NOBODY, 10), (AWAY, short), (NOBODY, 5))

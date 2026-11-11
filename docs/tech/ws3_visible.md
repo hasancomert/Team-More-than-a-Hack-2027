@@ -2,7 +2,8 @@
 
 Owner: Osman. Code: `saha/visible/build.py`. Tests: `tests/test_visible.py`.
 Experiments: `experiments/20261106_ws3_control-hysteresis-v1.md` (v1),
-`experiments/20261111_ws3_touch-confirm-v2.md` (v2).
+`experiments/20261111_ws3_touch-confirm-v2.md` (v2),
+`experiments/20261111_ws3_first-touch-weight-v21.md` (v2.1, the submitted version).
 
 ## Approach
 
@@ -13,7 +14,7 @@ spellF1 every change that survives the decoder and is not real is a false posses
 
 CHALLENGE.md draws the line: possession changes only when the opponent gains control; a touch
 without control, a deflection and a won aerial duel do not count; a loose or contested ball stays
-with the last team. v2 implements that in three steps.
+with the last team. v2.1 implements that in three steps.
 
 1. **Touches.** A frame is a touch frame for a team when that team's nearest player is the closest
    to the ball and within `TOUCH_M` = 1.5 m, at any ball speed and duels included. Runs of touch
@@ -28,15 +29,18 @@ with the last team. v2 implements that in three steps.
    A confirmed hand-over is placed at the candidate's first frame: the new team's first touch after
    the old team's last one.
 
-3. **Probabilities.** On each tracked graded frame after a stretch's first confirmed possession,
-   for the team with the ball:
+   A stretch's first touch starts a possession without confirmation (`FIRST_TOUCH_OWNS`): a
+   restart is taken by the team with the ball, and after a ball gap nobody else has touched it.
+
+3. **Probabilities.** On each tracked graded frame after a stretch's first possession, for the team
+   with the ball, at weight `WEIGHT` = 2 (twice `nearest`'s):
 
    | situation | P(team has the ball) |
    |---|---|
    | its own touches | `P_TOUCH` = 0.9 |
    | the ball between two of its touches | `P_HOLD` = 0.8 |
    | the ball on its way to the other team, the other team's unconfirmed touches, after a stretch's last touch | `P_LOOSE` = 0.6 |
-   | before a stretch's first confirmed possession | no opinion |
+   | before a stretch's first touch | no opinion |
 
    The state is forgotten at the start of each graded half and across a ball gap longer than
    `RESET_GAP` = 0.5 s: what happened while the ball was missing is WS4's question.
@@ -56,8 +60,17 @@ every frame), that removed most changes and placed the rest late:
 - the start of the new team's control is a median 19 frames late; its first touch after the old
   team's last one is 2 frames late.
 
-Fused with WS2's dead ball on DFL (degraded like our match), spellF1 goes from 0.3505 (v1, today's
-configuration) to 0.3698 (v2), and to 0.3987 with `nearest` switched off (next section).
+### Results on WS5's seven DFL matches
+
+Degraded like our match, fused with WS2's dead ball, official metric, mean of seven matches:
+
+| configuration | spellF1 | above `main` |
+|---|---|---|
+| `main`: `nearest` 1.0 + WS2, no WS3 | 0.3186 | |
+| v1, `nearest` 1.0 | 0.3216 | 4/7 |
+| v2, `nearest` 1.0 | 0.3564 | 7/7 |
+| v2.1, `nearest` 1.0 | 0.3617 | 7/7 |
+| **v2.1, `nearest` 0.5** | **0.3869** | 7/7 |
 
 ## Where the values come from
 
@@ -73,8 +86,11 @@ No value is fitted on this match (D016, D017).
   about to change hands. None is 1, because the tracker swaps and merges players.
 - 0.5 s reset: the tracker bridges short occlusions itself (docs/EDA.md).
 
-Variants (3 touches, 10 frames, 1.0 m) were scored on DFL. They differ by less than one match's
-noise, so the reasoned values stay (experiment v2).
+- Weight 2 and the first touch: tuned on WS5's seven DFL matches, where together they beat v2 on
+  7 of 7 (experiment v2.1). Weight 3 was no better, so the smaller value stays.
+
+Variants of the touch rule (3 touches, 10 frames, 1.0 m) were scored on DFL too. None is better on
+every match, so the reasoned values stay (experiment v2).
 
 ## Assets
 
@@ -89,8 +105,12 @@ docs/tech/ws5_external.md) were used to compare versions and variants.
 
 ## Limitations
 
-- `nearest` and `visible` read the same nearest player, so fusing both counts it twice. On DFL,
-  v2 scores best with `nearest` at scale 0; the scale is WS1's setting (TEAM.md).
+- `nearest` and `visible` read the same nearest player, so fusing both counts it twice. On seven
+  DFL matches, v2.1 scores best with `nearest` at 0.5; the scale is WS1's setting (TEAM.md).
+- Short possessions. v2.1 makes more of them on our match (76 under 2 s, 20% of possessions, at
+  `nearest` 0.5). DFL's labels change on every touch and reward that; ours ask for control. If our
+  ground truth has fewer short possessions, part of the DFL gain does not transfer. A DFL set
+  relabelled to a controlled definition (WS5) would settle it.
 - No ball height: a high ball over a player within 1.5 m counts as a touch. On DFL, a quarter of
   the labelled changes happen with the ball above 1.9 m (headers), so height would help where it
   exists.
