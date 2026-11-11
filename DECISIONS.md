@@ -188,3 +188,22 @@ come here (CLAUDE.md).
       `main`, in a cloud session, and reports the result before the team leader merges.
     - A red "checks" saying "The job was not started" is expected. It is not a failure of the
       code.
+- **D024 (the team, 10 November) We keep the strict reading of D017.** RULES.md, as published
+  in the repository, lists among what remains fine on the provided game: "Learning without human
+  labels — unsupervised or self-supervised methods, or pseudo-labels produced by an algorithm,
+  provided no person decided any of them." The organizers' clarification of 5 November says that
+  any training must use external data only, and that anything not explicitly allowed is not
+  permitted. The two texts disagree. WS1 had missed the RULES.md sentence when it wrote D017.
+  The team keeps the stricter reading:
+    - The gain from relaxing it is small. WS2's team-shape model was worth 0.006 spellF1 on
+      external data, and every such model can be trained on WS5's data instead.
+    - The cost of being wrong would be disqualification.
+
+  The technical document states this choice.
+- **D025 (the team, 10 November) The whistle stays off in the submission.** This closes D006.
+    - Its benefit cannot be measured on external data, because no external set has audio.
+    - Using it would require the tactical video (5.2 GB) and ffmpeg on every machine that
+      reproduces the submission.
+    - It would also put the byte-identical reproduction at risk across ffmpeg versions.
+
+  WS2's detector stays in the code, off by default.

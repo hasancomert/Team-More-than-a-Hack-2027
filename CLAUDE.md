@@ -31,8 +31,9 @@ Before working on a package, read its open items in STATUS.md; they come first.
    The published graded-half boundaries are the only exception. Watching the video or exploring
    the data to understand what counts as possession is allowed.
 2. **Train and tune on external data only.** These are the organizers' rules (DECISIONS D016,
-   D017). They add: "anything that is not explicitly allowed is not permitted". When in doubt,
-   ask the team leader first.
+   D017). They add: "anything that is not explicitly allowed is not permitted". RULES.md allows
+   learning without human labels on the provided game, but the team keeps this stricter reading
+   (D024). When in doubt, ask the team leader first.
     - Any training, fitting or calibration uses external data only. Nothing is fitted on any of
       this match's data, its tracking and tags included. That means no self-supervised models,
       and no value that an algorithm estimates from this match on every run (a tag's meaning, a
