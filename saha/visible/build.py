@@ -53,6 +53,8 @@ JOIN = 3                 # frames (0.12 s): same-team touches this close are one
 # -- hand-overs --------------------------------------------------------------------------------
 CONFIRM_FRAMES = 6       # frames (0.24 s): longer than a deflection (1-3 frames at 25 fps)
 CONFIRM_TOUCHES = 2      # a second touch by the same team: a completed pass or a carry
+FIRST_TOUCH_OWNS = False # a stretch's first touch starts a possession unconfirmed (a restart is
+                         # taken by the team with the ball; after a gap, nobody else has touched)
 # -- resets ------------------------------------------------------------------------------------
 RESET_GAP = FPS // 2     # frames: a longer ball gap forgets the last team (WS4's frames)
 # -- output ------------------------------------------------------------------------------------
@@ -67,7 +69,8 @@ HOME, AWAY, NOBODY = 0, 1, -1
 def params():
     """The parameters, as recorded in the evidence file's metadata."""
     return {"version": 2, "TOUCH_M": TOUCH_M, "JOIN": JOIN, "CONFIRM_FRAMES": CONFIRM_FRAMES,
-            "CONFIRM_TOUCHES": CONFIRM_TOUCHES, "RESET_GAP": RESET_GAP, "P_TOUCH": P_TOUCH,
+            "CONFIRM_TOUCHES": CONFIRM_TOUCHES, "FIRST_TOUCH_OWNS": FIRST_TOUCH_OWNS,
+            "RESET_GAP": RESET_GAP, "P_TOUCH": P_TOUCH,
             "P_HOLD": P_HOLD, "P_LOOSE": P_LOOSE, "WEIGHT": WEIGHT}
 
 
@@ -138,7 +141,8 @@ def hand_overs(events):
         if candidate is None or candidate[1] != k:
             candidate, count = (a, k), 0
         count += 1
-        if b - a >= CONFIRM_FRAMES or count >= CONFIRM_TOUCHES:
+        first = FIRST_TOUCH_OWNS and not out
+        if first or b - a >= CONFIRM_FRAMES or count >= CONFIRM_TOUCHES:
             out.append(candidate)
             owner, candidate, count = k, None, 0
     return out
