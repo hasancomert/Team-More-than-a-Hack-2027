@@ -3,7 +3,7 @@ date: 2026-11-11
 package: ws3
 name: first-touch-weight-v21
 author: Osman (owner, runs on the data), Claude Code (code and record)
-commit:
+commit: 5e105e7
 config: configs/pipeline.toml
 public_spell_f1: 0.4400
 public_spell_low: 0.29
