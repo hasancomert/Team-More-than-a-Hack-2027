@@ -13,9 +13,15 @@ from saha.testing import synthetic
 
 @pytest.fixture(scope="session", autouse=True)
 def isolated_dirs(tmp_path_factory):
-    saved = {k: os.environ.get(k) for k in ("SAHA_CACHE_DIR", "MTAH_DATA_DIR")}
+    saved = {k: os.environ.get(k) for k in ("SAHA_CACHE_DIR", "MTAH_DATA_DIR",
+                                             "SAHA_DEADBALL_MODEL")}
     os.environ["SAHA_CACHE_DIR"] = str(tmp_path_factory.mktemp("cache"))
     os.environ["MTAH_DATA_DIR"] = str(tmp_path_factory.mktemp("no_data_here"))
+    # WS2's classifier learned from real matches with twenty-two players; on the synthetic match
+    # (four players) it calls almost every frame dead, and its decision outweighs the rest. So
+    # the pipeline tests run WS2's builder without it, with no opinion; tests/test_deadball.py
+    # tests the package.
+    os.environ["SAHA_DEADBALL_MODEL"] = "none"
     yield
     for key, value in saved.items():
         if value is None:

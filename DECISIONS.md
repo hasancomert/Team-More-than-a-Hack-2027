@@ -151,3 +151,40 @@ come here (CLAUDE.md).
 ## 2026-11-06
 
 - **D019 Owners: Seyyid takes WS5** (GitHub planckestein, PR #9). Only WS3 is still open.
+- **D020 (accepted by the team leader, 6 November) Model files trained on external data.** A
+  model trained only on external open data is not match data, so it may be committed:
+    - under `saha/<package>/models/`, as `.pkl` or `.joblib`, up to 5 MB;
+    - with a manifest next to it, `<file>.json`. The manifest names the training script (in the
+      repository), the external data and its licence, the seed, the library versions and the
+      model's SHA256.
+
+  The guard allows exactly that path and size, and checks the manifest on every commit and in
+  CI. Pickles and big files stay forbidden everywhere else. A model fitted on any of this
+  match's data is never allowed (D017).
+- **D021 Owners: Osman takes WS3** (GitHub osmaneren151, PR #12). Every package now has an
+  owner: WS1 Hasan, WS2 Alparslan, WS3 Osman, WS4 Baki, WS5 Seyyid.
+
+## 2026-11-07
+
+- **D022 (accepted by the team leader, 7 November) WS2's decoder stays in `saha/deadball`.**
+    - WS2 decides dead or alive with its own event-gated decoder, validated on held-out
+      external matches.
+    - It hands the combiner that decision as `p_dead` 0.99 / 0.01 at weight 20, and the
+      combiner reproduces it frame for frame.
+    - The decoder's ideas do not move into WS1's combiner before the feature freeze. We revisit
+      this only if WS5's external harness shows that fusing beats it.
+    - The pipeline tests run WS2's builder without its classifier (`SAHA_DEADBALL_MODEL=none`).
+      The four-player synthetic match is no input for a model trained on real matches, and
+      `tests/test_deadball.py` tests the package itself.
+
+## 2026-11-10
+
+- **D023 (team leader, 10 November) GitHub Actions is off; the CI runs locally.** Since 10
+  November GitHub does not start the workflow on this private repository: the account's Actions
+  billing would have to be raised, and the team leader chose not to pay. So:
+    - `python -m saha.tools.ci` runs every step of `.github/workflows/ci.yml` locally, with
+      synthetic data and public files only.
+    - Every author runs it before opening a PR. WS1 runs it again on the PR merged into
+      `main`, in a cloud session, and reports the result before the team leader merges.
+    - A red "checks" saying "The job was not started" is expected. It is not a failure of the
+      code.
