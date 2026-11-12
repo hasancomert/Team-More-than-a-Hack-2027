@@ -65,9 +65,9 @@ Every new shell: `cd` into the repository and activate the environment again
 |---|---|
 | WS1 infrastructure and integration | Hasan (team leader) |
 | WS2 dead ball | Alparslan |
-| WS3 possession while the ball is tracked | Baki or _TBD_ (Baki takes WS3 or WS4) |
-| WS4 possession while the ball is missing | Baki or _TBD_ |
-| WS5 external data and independent validation | _TBD_ |
+| WS3 possession while the ball is tracked | Osman |
+| WS4 possession while the ball is missing | Baki |
+| WS5 external data and independent validation | Seyyid |
 
 Each package writes one evidence file (interface in CLAUDE.md) from `saha/<package>/build.py`.
 The pipeline already runs every package: today they are stubs with no opinion, so your first PR
@@ -124,7 +124,8 @@ pieces fit together without negotiation:
 - **Starting ideas.**
     - An HMM/Viterbi (or similar) segmentation over H/A/D.
     - Fuse the evidence as log-odds.
-    - Set switching costs so the result has few, long possessions.
+    - Flicker costs a lot (docs/METRIC_NOTES.md), so the switching costs favour few, long
+      possessions. Their values are tuned on WS5's external data (D016).
     - Use X only in mid-possession.
 
 ### WS2: dead ball (D) (owner: Alparslan)
@@ -156,9 +157,10 @@ pieces fit together without negotiation:
     - EDA: in the public window, restart tags are long windows, only loosely aligned with the
       real restart. Use a tag as the window to search in, and the tracking to find the frame.
     - EDA: players' mean speed in the public window is 1.2 m/s when the ball is dead and 2.3 m/s
-      in play.
+      in play. That split uses the public ground truth: it helps to understand the data, but it
+      is never a threshold (D016).
 
-### WS3: possession while the ball is tracked (owner: Baki or _TBD_)
+### WS3: possession while the ball is tracked (owner: Osman)
 
 - **Goal.** `p_home` on frames where the ball is visible, and the exact frame where possession
   changes.
@@ -178,8 +180,13 @@ pieces fit together without negotiation:
     - The ball has no height channel, and its speed channel does not follow its positions
       (DECISIONS D015). Take the ball's speed from `kinematics.displacement_speed` and the
       nearest player from `kinematics.nearest_player`, both in `saha.common.kinematics`.
+    - The ball's positions are clean, on the graded frames where the ball is tracked
+      (experiments/20261104_ws1_cost-switch-sweep-2.md):
+        - The median step between frames is 0.2 m, and under 1% of steps exceed 1 m.
+        - Its speed from positions has a median of 5.1 m/s and a 90th percentile of 14 m/s.
+        - A player is within 1.5 m of the ball on 42% of these frames.
 
-### WS4: possession while the ball is missing (owner: Baki or _TBD_)
+### WS4: possession while the ball is missing (owner: Baki)
 
 The ball is missing on **41% of graded frames**.
 
@@ -204,9 +211,10 @@ The ball is missing on **41% of graded frames**.
     - So the core of WS4 is the team shape: who attacks, the defensive block, pressing.
     - Use the team of each Smart Tagging phase. Treat Team = N/A (every throw-in) separately.
     - Study PathCRF (https://github.com/hyunsungkim-ds/pathcrf), which infers possession
-      without the ball. Our tracking has no player identities and its slots break up.
+      without the ball. Our tracking has no player identities and its slots break up. Train
+      any such model on external data only (D016).
 
-### WS5: external data and independent validation (owner: _TBD_)
+### WS5: external data and independent validation (owner: Seyyid)
 
 - **Goal.** A labelled validation set from other matches' open data, made to look like ours.
   Parameters are chosen there, not on the 17 public possessions.
@@ -230,10 +238,10 @@ The ball is missing on **41% of graded frames**.
 
 ### Other notes
 
-- Ball detection from the video is allowed but heavy. It needs a team decision before anyone
-  starts.
+- Ball detection from the video is allowed as an input, if the detector is not trained on this
+  match's video (D016). It is heavy and needs a team decision before anyone starts.
 - Labelled data is scarce: 7,500 frames and 17 possessions. Rule-based and probabilistic models
-  come first. Supervised models only with WS5 data.
+  come first. Any training or fitting, supervised or not, uses external data only (D016).
 
 ## Calendar
 
@@ -249,13 +257,14 @@ The ball is missing on **41% of graded frames**.
 
 ## How we decide
 
+- The organizers' rules (DECISIONS D016): train, fit and tune on external data only, never on
+  this match's ground truth or video.
 - The public 5 minutes check correctness only. Four or five people looking at the same 17
-  possessions over-fit together. No change is merged only because the public score went up.
-- Decide with:
-    - football and physics reasoning
-    - match-wide consistency (`python -m saha.pipeline` prints possession count, durations and
-      D rate)
-    - `--bootstrap 1000` intervals
-    - WS5's external validation set, once it exists
+  possessions over-fit together. No change is merged because the public score went up.
+- Parameters come from:
+    - WS5's external data, where they are tuned
+    - football and physics reasoning, with no fitting
+- Match-wide statistics (`python -m saha.pipeline` prints possession count, durations and D
+  rate) and the self-check catch errors. They never choose a value.
 - Every significant change gets an experiment record (experiments/README.md). Team-level
   decisions go into DECISIONS.md.

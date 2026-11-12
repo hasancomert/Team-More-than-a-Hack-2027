@@ -76,6 +76,9 @@ submissions/
 *.pkl
 *.pickle
 *.joblib
+# ...except a model trained on external data, with its manifest (DECISIONS D020)
+!saha/*/models/*.pkl
+!saha/*/models/*.joblib
 *.h5
 *.hdf5
 *.mov

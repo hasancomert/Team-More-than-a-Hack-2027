@@ -1,8 +1,34 @@
 # Status
 
-Updated **4 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
+Updated **5 November 2026** by WS1. This page says where we are and what to do next; WS1 updates
 it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 [CLAUDE.md](CLAUDE.md).
+
+## Read first: the organizers' rules on training and tuning (5 November)
+
+The organizers sent the rules on what is and is not allowed, then answered our questions. They
+add no detail, but they say that "anything that is not explicitly allowed is not permitted". The
+full text and what it changes are in DECISIONS D016 and D017; CLAUDE.md rules 1 and 2 follow
+them. In short:
+
+- Train, fit, calibrate and tune on **external data only**. That rules out this match's
+  tracking and tags too: no fitting on them, self-supervised included, and no value estimated
+  from this match on every run.
+- Never check our output against the video. Watching the video to understand what counts as
+  possession is allowed.
+- Automatic checks on this match's data are allowed. They catch errors; they never choose a
+  value.
+- Never upload the data to AI services (D008 already).
+
+## CI runs locally (10 November)
+
+GitHub no longer starts the CI workflow on this repository: the account's Actions billing
+would have to be raised, and the team leader chose not to pay (D023). So a red "checks" with
+"The job was not started" on a pull request is expected, and is not a failure of your code.
+
+- Before you open a PR, run `python -m saha.tools.ci`. It runs every check of the workflow
+  locally, with synthetic data only.
+- WS1 runs it again on your PR merged into `main` before the team leader merges.
 
 ## Where we are: Phase 0 is done
 
@@ -76,11 +102,11 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 | 28 – 31 Oct | Phase 0: shared infrastructure | done; PR #1 merged on 31 Oct |
 | 31 Oct – 11 Nov | Phase 1: parallel work | started |
 | 4 Nov | every package's first working evidence file | |
-| 5 Nov | joint score report 1 (WS1) | |
-| 9 Nov | joint score report 2 (WS1) | |
+| 5 Nov | joint score report 1 (WS1) | skipped: no package had delivered |
+| 9 Nov | joint score report 2 (WS1) | written on 8 Nov (docs/reports/) |
 | 10 Nov | last day for everyone to be registered as SAHA | |
 | 12 Nov | feature freeze: FINAL_CHOICE.md with its commit hash | |
-| 13 – 15 Nov | technical document; reproduction on two machines (SHA256); public-repository preparation | |
+| 13 – 15 Nov | technical document; reproduction on two machines (SHA256); public-repository preparation | reproduction already matched once, on 6 Nov |
 | 14 Nov | the form link arrives by email | |
 | 16 Nov | submit the form | |
 | 17 Nov, 23:59 CET | deadline (Türkiye: 18 Nov, 01:59) | |
@@ -88,65 +114,70 @@ git checkout -b ws2/first-evidence        # your package and a short topic
 ## Open items
 
 - **Team leader:**
-    - Name the remaining owners: Baki takes WS3 or WS4; the other of the two, and WS5, are
-      still open (TEAM.md).
     - Turn on branch protection for `main`, if the GitHub plan offers it.
-- **WS2:** bring the prototype on branch `ws2/event-deadball` into the shared structure. The
-  step-by-step list is in the next section.
+- **WS2:** PR #14 ports the prototype into `saha/deadball`. What is left is in the WS2 section
+  below.
 - **WS1:**
     - Done, on the data (4 November): the players' speed is in m/s (D012). The ball's speed
       channel is not, so the ball's speed now comes from its positions (D015,
       `saha.common.kinematics`).
-    - Done: the first self-check run,
-      [experiments/20261104_ws1_cost-switch-sweep-1.md](experiments/20261104_ws1_cost-switch-sweep-1.md).
-      It was inconclusive. It found only 109 touches, and the lower costs that recover more of
-      them invent hundreds of short possessions. `cost_switch` stays at 35.
-    - Waiting on a run on the data (team leader), now that touches come from the ball's
-      positions:
-        - `python -m saha.tools.data_checks --speed`
-        - `python -m saha.tools.selfcheck`
+    - Done: the self-check, with its touches found from the ball's positions
+      ([sweep 2](experiments/20261104_ws1_cost-switch-sweep-2.md)).
+        - It finds 942 touches, so each recovered share is good to about ±0.01. The first
+          sweep had only 109.
+        - Lower costs recover a few more touches, but only by inventing many short
+          possessions.
+        - `cost_switch` stays at 35. At 35 nats, the decoder recovers 89% of the withheld
+          touches.
     - Then: let the combiner keep the short possessions that strong evidence supports. Today
       none shorter than 2 s survives.
         - Stronger evidence from WS3 matters more here than a lower cost.
-        - The costs are chosen from WS5's external data and from match-wide consistency.
-        - The self-check stays a sanity check. Its touches come from the same signal as the
-          nearest-player evidence, so it favours costs that follow the evidence closely.
-    - Joint score report 1 on 5 November.
+        - The costs are tuned on WS5's external data only (D016).
+        - The self-check stays a check: it never chooses a value (D016). Its touches also come
+          from the same signal as the nearest-player evidence, so it favours costs that follow
+          the evidence closely.
+    - Done: exact emissions in the combiner, so that a confident `p_home` no longer pushes
+      against D (found by WS4;
+      [experiments/20261105_ws1_exact-emissions.md](experiments/20261105_ws1_exact-emissions.md)).
+      With the nearest-player evidence alone, the match-wide statistics did not change.
+    - Done (6 November): the submission reproduces byte for byte on a second machine. Seyyid's
+      clean install gives the same SHA256 as the team leader's (`9fedd7df…`). The check is
+      repeated on the final version (13 – 15 November).
+    - Joint score report 2:
+      [docs/reports/20261109_joint_report_2.md](docs/reports/20261109_joint_report_2.md). Report 1
+      was skipped, because no package had delivered by 5 November.
+    - Ready for the freeze:
+        - the `FINAL_CHOICE.md` template;
+        - `docs/tech/saha_main.md` and WS1's own section `docs/tech/ws1_pipeline.md`;
+        - `python -m saha.tools.techdoc`, which assembles SAHA.md from them.
+    - The technical document says how the team used Claude Code: aggregate output only, never
+      data (D008, D017).
 
-## WS2: bringing `ws2/event-deadball` into the shared structure
+## WS2: dead ball
 
-The branch holds a strong event-driven prototype: a dead-ball model, the referee's whistle,
-kick-off detection and an event-gated decoder. It was written before Phase 0, as a separate
-pipeline. Its ideas are worth keeping; its shape has to change before anything from it is merged.
-WS2 (with Claude Code, if you use it) works through this list:
+PR #14 (`ws2/deadball-evidence`, 6 November) ports WS2's prototype into `saha/deadball`, following
+the list that stood here. It does the following:
 
-1. **Start from current `main`.** Merge `main` into the branch, or open a new branch from `main`
-   and port the code.
-2. **Python 3.11 with the team pins** (D014). If scikit-learn is needed, add it to
-   `requirements-saha.txt`, pinned, in the same PR.
-3. **One pipeline.** Read the match through `saha.common` (`frame_table.load()`,
-   `smart_tagging.load()`), not `possession/data.py`. Write the result from
-   `saha/deadball/build.py` through `write_evidence`:
-    - `p_dead` on every frame you can judge;
-    - `p_home` only inside restart windows (TEAM.md, boundaries).
+- **Whistle:** the band and the threshold come from outside this match (whistle makers'
+  published tones, and TU Dortmund's labelled recordings). The whistle is off by default.
+- **Formation model:** it was fitted on this match, so it is not ported.
+- **Dead-ball classifier:** it is trained on 20 open SkillCorner matches and committed with its
+  manifest (D020). `python -m saha.deadball.train` rebuilds it byte for byte.
+- **Dependencies:** scikit-learn and its dependencies are pinned in `requirements-saha.txt`.
+- **Documentation:** `docs/tech/ws2_deadball.md` gives the source and licence of every number.
+- **Decoder:** WS2's decoder stays in `saha/deadball`, and the combiner reproduces its decision
+  frame for frame (D022).
+- **Reproduced on two machines:** the team leader's machine gives the same SAHA.csv SHA256 as
+  WS2's. That held on 7 November with the first classifier (`081f57c1…`) and on 10 November with
+  the second one, trained with the hidden ball (`3b74ae89…`).
 
-   Drop the second entry point (`run.py`) and the second decoder. The decoder ideas (event
-   gating, autocorrelation discounting) go into WS1's combiner, in a separate PR with WS1.
-4. **Agree with WS3/WS4 first.** The formation model and the ball-control signal answer WS3's
-   and WS4's questions. Agree with their owners before shipping them, and keep the TEAM.md
-   boundaries.
-5. **Two rule fixes, required before any merge** (RULES.md, CLAUDE.md rules 1–2, D009):
-    - The hard-hold versus soft-hold choice was made by comparing versions on the public
-      window and on restart times read off the video. Both are out: no hand labels on this
-      match for any purpose, validation included, and the public window never chooses between
-      two versions. Re-decide it by football reasoning, by the self-supervised test, or on
-      WS5's external data. Rewrite that part of the text to say how it was decided.
-    - The whistle frequency bands were measured by hand on this match's audio. Find the
-      whistle's two tones automatically, or take a generic whistle band from outside this
-      match, so that no constant comes from inspecting this game.
-6. **The whistle needs a team decision** (D006). It requires the tactical video (5.2 GB) and
-   ffmpeg on every machine that reproduces the submission. Bring it to the team together with
-   a determinism check: the same whistle times on two machines. Until then, the rest must work
-   without it.
-7. **Move the documentation.** The text in `TECHNICAL.md` goes to `docs/tech/ws2_deadball.md`.
-   WS1 assembles `SAHA.md` from the package sections.
+Still open:
+
+1. **Does the classifier transfer?** It learned from 10 fps broadcast tracking in which 29% of
+   frames are dead. On this match it calls about half of the frames dead. Score WS2 on WS5's DFL
+   matches, which are 25 fps and full pitch like ours, to see whether it transfers. That is a
+   check, not a tuning.
+2. **One external set, with WS5.** Move the SkillCorner loader from `saha/deadball/skillcorner.py`
+   into `saha/external`, together with Seyyid.
+3. **The whistle stays off in the submission** (D025, decided on 10 November). The detector
+   and its fingerprint tool stay in the code, off by default.

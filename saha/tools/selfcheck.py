@@ -14,11 +14,12 @@ team (D counts as wrong). The score is the share recovered. The match-wide stati
 decode are printed beside it, because a setting that wins on touches by inventing possessions should
 not win (docs/METRIC_NOTES.md).
 
-No ground truth is used anywhere, so this may inform combiner settings (CLAUDE.md, rule 2). Its
-touches come from the same signal as the nearest-player evidence, though, so on its own it favours
-settings that follow that evidence closely: it is a sanity check, not the selector (experiment
-20261104_ws1_cost-switch-sweep-1). It reads the evidence files of the last pipeline run and prints
-aggregates only.
+It is an automatic check that uses only the provided data, which the organizers allow (DECISIONS
+D016). It catches errors and shows how sensitive the decode is to a setting. It never chooses a
+value, because parameters are tuned on external data only. Its touches also come from the same
+signal as the nearest-player evidence, so it favours settings that follow that evidence closely
+(experiment 20261104_ws1_cost-switch-sweep-1). It reads the evidence files of the last pipeline
+run and prints aggregates only.
 """
 
 import argparse
@@ -143,8 +144,8 @@ def main(argv=None):
             row["value"], row["recovered"], row["frame_agreement"], row["n_possessions"],
             row["mean_duration_s"], row["median_duration_s"], row["short_possessions_lt_2s"],
             row["d_rate"]))
-    print("Read the recovered share together with the possession counts: a value that gains a "
-          "few touches\nby inventing many short possessions is not better (docs/METRIC_NOTES.md).")
+    print("A check, not a tuner: values are tuned on external data only (DECISIONS D016).\n"
+          "A value that gains a few touches by inventing many short possessions is not better.")
     return 0
 
 

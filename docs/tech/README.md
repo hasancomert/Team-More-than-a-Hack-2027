@@ -1,8 +1,14 @@
 # Technical document: how it is assembled
 
 The deliverable is `SAHA.md` (or `SAHA.pdf`): a few pages, in English, uploaded with the form.
-WS1 assembles it on 13–15 November from one section per package. Each section is written here,
-by its owner:
+WS1 assembles it on 13–15 November:
+
+```bash
+python -m saha.tools.techdoc        # writes SAHA.md at the repository root
+```
+
+It takes `saha_main.md` (the cross-package sections, WS1) and appends each package's section as
+an appendix, in WS order. Each section is written here, by its owner:
 
 | file | owner |
 |---|---|

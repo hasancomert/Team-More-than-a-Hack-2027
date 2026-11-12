@@ -22,15 +22,31 @@ Before working on a package, read its open items in STATUS.md; they come first.
 ## Hard rules
 
 1. **Labels come from an algorithm only.** These are forbidden:
-    - hand labels
+    - hand labels, and any other data made by hand on this match (times read off the video,
+      measurements taken by hand from its audio, and so on)
     - hand-corrected outputs
+    - checking our output against the video
     - rules or constants tied to specific frames of this match
 
-   The published graded-half boundaries are the only exception.
-2. **The only ground truth for this match is the public 5 minutes.** Use it only to check that
-   the pipeline is correct. Never use it to train, tune, or choose between two versions. Labelled
-   open data from *other* matches is fine (WS5). It must be public, and the technical document
-   must explain it.
+   The published graded-half boundaries are the only exception. Watching the video or exploring
+   the data to understand what counts as possession is allowed.
+2. **Train and tune on external data only.** These are the organizers' rules (DECISIONS D016,
+   D017). They add: "anything that is not explicitly allowed is not permitted". RULES.md allows
+   learning without human labels on the provided game, but the team keeps this stricter reading
+   (D024). When in doubt, ask the team leader first.
+    - Any training, fitting or calibration uses external data only. Nothing is fitted on any of
+      this match's data, its tracking and tags included. That means no self-supervised models,
+      and no value that an algorithm estimates from this match on every run (a tag's meaning, a
+      time lag, a whistle frequency).
+    - Every tuned parameter is tuned on external data (WS5). A value may also come from football
+      or physics reasoning, with no fitting at all. It is never adjusted after looking at this
+      match's output.
+    - Automatic checks on this match's data are allowed, such as the self-check and the
+      match-wide statistics. They catch errors; they never choose a value.
+    - The public 5 minutes are the only ground truth for this match. Use them only to check that
+      the pipeline is correct, never to choose between two versions.
+    - External data must be public and we must have the right to use it: check its licence. The
+      technical document explains it.
 3. **The match data never leaves members' machines.** This covers the data itself and anything
    derived from it frame by frame: tracking, tags, homography, video, frame tables, evidence
    files, caches, per-frame CSVs.
@@ -147,13 +163,17 @@ exactly 199,319 rows and exactly these columns:
 - Keep PRs small. Each needs at least one approval from another member.
 - Changes to `saha/common/` also need WS1's approval.
 - Before opening a PR:
-    1. `python -m pytest`
+    1. `python -m saha.tools.ci`: every check of the CI workflow, run locally. GitHub Actions
+       does not run on this repository (DECISIONS D023). A red "checks" with "The job was not
+       started" is expected. WS1 runs the same checks on the merge result before the team
+       leader merges.
     2. `python -m saha.pipeline`, if you have the data
     3. an experiment record
-- The hooks block the following (`python -m saha.tools.setup_dev` installs them, CI re-checks):
+- The hooks block the following. `python -m saha.tools.setup_dev` installs them, and
+  `python -m saha.tools.ci` checks them again:
     - `data/`, `cache/`, `submissions/`
-    - data-dump formats
-    - files over 500 KB
+    - data-dump formats and files over 500 KB, except a model trained only on external data
+      under `saha/<package>/models/` (up to 5 MB, with its manifest: DECISIONS D020)
     - frame-level tables
     - edits to `evaluation/` or `games.py`
     - pushes to `main`
@@ -167,12 +187,12 @@ After every significant change:
 2. Run `python -m saha.common.experiments new <ws> <short-name>`.
 3. Fill in what changed, why, the result and the decision. Commit the record with the change.
 
-Never merge a change only because the public score went up. Choose parameters from:
+The public score never decides anything (rule 2). Parameters come from:
 
-- football and physics reasoning
-- match-wide consistency (possession count, durations, D rate)
-- bootstrap intervals
-- WS5's external validation set
+- WS5's external data, where they are tuned
+- football and physics reasoning, with no fitting
+
+Match-wide statistics, the self-check and the public score only catch errors.
 
 ## Determinism
 
@@ -192,8 +212,9 @@ python -m saha.common.frame_table           # build/check the shared frame table
 python -m saha.<package>.build              # one evidence file
 python -m saha.common.evidence              # validate every evidence file
 python -m saha.common.experiments           # every experiment in one table
-python -m saha.tools.selfcheck              # combiner settings, label-free (after a pipeline run)
+python -m saha.tools.selfcheck              # label-free combiner check (after a pipeline run)
 python -m pytest                            # tests (synthetic data only)
+python -m saha.tools.ci                     # every CI check, locally (DECISIONS D023)
 python evaluation/validate_submission.py submissions/SAHA.csv
 python evaluation/run_evaluation.py --bootstrap 1000
 ```

@@ -90,3 +90,120 @@ come here (CLAUDE.md).
       nearest-player evidence.
     - The frame table keeps the channel as delivered (`ball_speed`), for diagnostics only.
       `python -m saha.tools.data_checks --speed` describes it.
+
+## 2026-11-05
+
+- **D016 (the organizers' rules, received 5 November) Train and tune on external data only.**
+  The organizers wrote:
+    - Not allowed: checking the output against the video; hand labels, human-produced data or
+      any other data created manually on the provided game; uploading the provided data to AI
+      services; training, fitting or calibrating on the ground-truth possession data or on the
+      provided video.
+    - Allowed: automatic checks using only the provided data; inspecting the provided data and
+      the video to better understand what counts as possession; the video, the tracking, the
+      Smart Tagging and other generated data as inputs, as long as nothing was trained on the
+      ground truth or on the provided video; providing files of intermediate steps; any dataset
+      we have the rights to use, after checking its licence.
+    - Training and tuning: any training uses external data only, and parameters that need
+      tuning are tuned on external data, never on the ground truth or the provided video.
+
+  What it changes for us (CLAUDE.md rules 1 and 2 follow it):
+    - "External data only" can be read as "nothing from this match". Until the organizers
+      answer our questions, we read it that way: no training or fitting on this match's tracking
+      or tags either, self-supervised included.
+    - The self-check and the match-wide statistics are checks. They catch errors; they never
+      choose a value. Neither does the public score, nor its bootstrap interval.
+    - WS2's prototype fits two models on this match: the dead-ball classifier, trained on labels
+      that rules make from the tracking, and the team-shape model. Both need external training
+      data, rules with reasoned constants, or the organizers' approval (STATUS.md).
+    - The whistle band comes from outside this match. Estimating it from this match's audio may
+      count as calibrating on the provided video.
+    - Intermediate files may go to the organizers if they ask for them. The public repository
+      still holds no match data (D008, CLAUDE.md rule 3).
+- **D017 (the organizers' answer, 5 November) The strict reading of D016 is final.** We asked
+  the organizers four questions:
+    - self-supervised fitting on this match's tracking;
+    - label-free checks that choose a parameter;
+    - estimating the whistle from this match's audio;
+    - showing aggregate statistics to an AI coding assistant.
+
+  They gave no further detail and repeated the rules. They added: "Each team is responsible for
+  making sure that its particular project, tool, platform or dataset complies with the
+  competition rules. As a reference, anything that is not explicitly allowed is not permitted."
+  So:
+    - Nothing is trained, fitted, calibrated or tuned on any of this match's data: tracking,
+      tags, video or ground truth. That includes self-supervised models, and values that an
+      algorithm estimates from this match on every run (a tag's meaning, a lag, a whistle
+      frequency).
+    - Values come from WS5's external data, or from football and physics reasoning. A reasoned
+      value is never adjusted to this match's output.
+    - This match's data is used only as input, for automatic checks, and to understand what
+      counts as possession.
+    - The answer does not address aggregate statistics shown to an AI assistant. The team leader
+      decided on 5 November to keep D008 as it is:
+        - Members may show Claude Code aggregate output only: counts, percentages, percentiles
+          and scores.
+        - No data and no frame-level derivative ever reaches an LLM.
+        - The technical document says so.
+- **D018 Owners: Baki takes WS4.** Baki opened WS4's first evidence (PR #7). WS3 and WS5 are
+  still open. This replaces the open part of D013.
+
+## 2026-11-06
+
+- **D019 Owners: Seyyid takes WS5** (GitHub planckestein, PR #9). Only WS3 is still open.
+- **D020 (accepted by the team leader, 6 November) Model files trained on external data.** A
+  model trained only on external open data is not match data, so it may be committed:
+    - under `saha/<package>/models/`, as `.pkl` or `.joblib`, up to 5 MB;
+    - with a manifest next to it, `<file>.json`. The manifest names the training script (in the
+      repository), the external data and its licence, the seed, the library versions and the
+      model's SHA256.
+
+  The guard allows exactly that path and size, and checks the manifest on every commit and in
+  CI. Pickles and big files stay forbidden everywhere else. A model fitted on any of this
+  match's data is never allowed (D017).
+- **D021 Owners: Osman takes WS3** (GitHub osmaneren151, PR #12). Every package now has an
+  owner: WS1 Hasan, WS2 Alparslan, WS3 Osman, WS4 Baki, WS5 Seyyid.
+
+## 2026-11-07
+
+- **D022 (accepted by the team leader, 7 November) WS2's decoder stays in `saha/deadball`.**
+    - WS2 decides dead or alive with its own event-gated decoder, validated on held-out
+      external matches.
+    - It hands the combiner that decision as `p_dead` 0.99 / 0.01 at weight 20, and the
+      combiner reproduces it frame for frame.
+    - The decoder's ideas do not move into WS1's combiner before the feature freeze. We revisit
+      this only if WS5's external harness shows that fusing beats it.
+    - The pipeline tests run WS2's builder without its classifier (`SAHA_DEADBALL_MODEL=none`).
+      The four-player synthetic match is no input for a model trained on real matches, and
+      `tests/test_deadball.py` tests the package itself.
+
+## 2026-11-10
+
+- **D023 (team leader, 10 November) GitHub Actions is off; the CI runs locally.** Since 10
+  November GitHub does not start the workflow on this private repository: the account's Actions
+  billing would have to be raised, and the team leader chose not to pay. So:
+    - `python -m saha.tools.ci` runs every step of `.github/workflows/ci.yml` locally, with
+      synthetic data and public files only.
+    - Every author runs it before opening a PR. WS1 runs it again on the PR merged into
+      `main`, in a cloud session, and reports the result before the team leader merges.
+    - A red "checks" saying "The job was not started" is expected. It is not a failure of the
+      code.
+- **D024 (the team, 10 November) We keep the strict reading of D017.** RULES.md, as published
+  in the repository, lists among what remains fine on the provided game: "Learning without human
+  labels — unsupervised or self-supervised methods, or pseudo-labels produced by an algorithm,
+  provided no person decided any of them." The organizers' clarification of 5 November says that
+  any training must use external data only, and that anything not explicitly allowed is not
+  permitted. The two texts disagree. WS1 had missed the RULES.md sentence when it wrote D017.
+  The team keeps the stricter reading:
+    - The gain from relaxing it is small. WS2's team-shape model was worth 0.006 spellF1 on
+      external data, and every such model can be trained on WS5's data instead.
+    - The cost of being wrong would be disqualification.
+
+  The technical document states this choice.
+- **D025 (the team, 10 November) The whistle stays off in the submission.** This closes D006.
+    - Its benefit cannot be measured on external data, because no external set has audio.
+    - Using it would require the tactical video (5.2 GB) and ffmpeg on every machine that
+      reproduces the submission.
+    - It would also put the byte-identical reproduction at risk across ffmpeg versions.
+
+  WS2's detector stays in the code, off by default.
