@@ -145,6 +145,11 @@ with and without WS4:
 WS4 helps on both matches (+0.012 spellF1 on average). The gain is inside the bootstrap noise,
 and it is never below the run without WS4.
 
+**WS1's seven-match check (12 November).** On all seven of WS5's DFL matches, mean spellF1 with
+WS4 is 0.3649 against 0.3564 without (+0.0085, raw labels), and WS4 is ahead on 6 of 7 matches.
+With WS1's controlled-possession labels and with PR #19 the gain is +0.007 to +0.009, ahead on 5
+or 6 of 7. The only clear loss is J03WN1, by 0.001 to 0.004. WS4 v2 is adopted.
+
 **On our match (checks only):**
 
 - The self-check's bridge + tags accuracy is 0.951, 0.952, 0.810 and 0.771 for 2, 5, 10 and

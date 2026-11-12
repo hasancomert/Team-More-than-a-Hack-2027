@@ -12,7 +12,7 @@ public_macro_f1: 0.8827
 n_possessions: 365
 mean_duration_s: 9.0
 d_rate: 0.483
-verdict: open
+verdict: adopted
 ---
 
 ## What changed
@@ -80,6 +80,28 @@ matches. The "all" row:
 - The occluded source alone scores 0.013 and 0.020. That is expected: alone it has no opinion
   on the tracked frames (59% of them).
 
+### WS1's seven-match check (12 November)
+
+WS1 reviewed PR #7 and scored WS4 on all seven of WS5's DFL matches, with the occluded scale at
+1 and at 0, seed 0. Mean spellF1:
+
+| context | labels | with WS4 | without | difference | WS4 ahead |
+|---|---|---|---|---|---|
+| main + PR #7 | raw | 0.3649 | 0.3564 | +0.0085 | 6 of 7 |
+| main + PR #7 | controlled-1s | 0.3899 | 0.3809 | +0.0090 | 6 of 7 |
+| main + PR #7 | controlled-2s | 0.4075 | 0.3990 | +0.0085 | 6 of 7 |
+| main + PR #19 + PR #7 | raw | 0.3937 | 0.3869 | +0.0068 | 6 of 7 |
+| main + PR #19 + PR #7 | controlled-1s | 0.4169 | 0.4096 | +0.0073 | 6 of 7 |
+| main + PR #19 + PR #7 | controlled-2s | 0.4273 | 0.4204 | +0.0069 | 5 of 7 |
+
+- J03WPY and J03WQQ reproduce the numbers above.
+- The only clear loss is J03WN1, between −0.001 and −0.004.
+- WS4 adds only 10 predicted possessions over the seven matches.
+- "controlled" labels merge every possession shorter than 1 s (or 2 s) that sits between two
+  possessions of the other team into them. They are WS1's proxy for controlled possession,
+  described in WS1's record `20261111_ws1_nearest-half-with-v21` (PR #19).
+- Source: WS1's review comment on PR #7.
+
 ### On the match (checks only)
 
 `python -m saha.occluded.build`:
@@ -125,7 +147,9 @@ truth):
 
 ## Decision
 
-Open. The public 5 minutes do not decide (CLAUDE.md, rule 2). Adopt if all of these hold:
+Adopted on 12 November. All four conditions below hold, and WS1's seven-match run confirms that
+WS4 is not below the run without it: it is ahead on 5 or 6 of 7 matches on every label set. The
+public 5 minutes did not decide (CLAUDE.md, rule 2). The conditions:
 
 - the evidence validates and the pipeline runs;
 - the self-check is calibrated;
@@ -138,6 +162,7 @@ Where each condition stands on 12 November:
 - self-check: the tags are not inverted, and the bands are mostly as right as their confidence
   or more, with the three exceptions listed above;
 - match-wide statistics: 365 possessions (357 without WS4), mean 9.0 s, D rate unchanged;
-- WS5's matches: spellF1 is +0.014 and +0.010 with WS4, inside the noise but not below it.
+- WS5's matches: spellF1 is +0.014 and +0.010 with WS4, inside the noise but not below it. On
+  all seven matches (WS1's check), the mean is +0.007 to +0.009.
 
-The verdict stays open for WS1's review of PR #7. No value was changed after any of these runs.
+WS1 reviewed PR #7 and found it ready to merge. No value was changed after any of these runs.
