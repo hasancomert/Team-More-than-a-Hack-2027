@@ -12,7 +12,7 @@ public_macro_f1:
 n_possessions:
 mean_duration_s:
 d_rate:
-verdict: open
+verdict: rejected
 ---
 
 ## What changed
@@ -63,11 +63,8 @@ aggregate output:
 
 ## Decision
 
-Open, until the run on the data. Adopt if all of these hold:
-
-- the evidence validates;
-- the pipeline runs;
-- the self-check is calibrated (each confidence band roughly as right as its mean);
-- the match-wide statistics stay plausible: possession count, mean duration, D rate.
-
-The public 5 minutes do not decide (CLAUDE.md, rule 2).
+Rejected. v1 was replaced before any run on the data, because it measured each Smart Tagging
+code's meaning on this match's touches on every run: a value estimated from this match, which
+the organizers' rules forbid (DECISIONS D017). The v2 record,
+[20261112_ws4_bridge-fixed-tags-v2.md](20261112_ws4_bridge-fixed-tags-v2.md), replaces it: each
+code's meaning comes from its official definition, with one reasoned strength.

@@ -127,6 +127,35 @@ These checks catch errors. They never choose a value (D016, D017).
 - **WS5's external harness:** `python -m saha.external.score` runs the same `build(table)` on
   degraded DFL matches. It scores the bridge alone, because DFL has no Smart Tagging.
 
+## Results (v2, 12 November)
+
+Record: [experiments/20261112_ws4_bridge-fixed-tags-v2.md](../../experiments/20261112_ws4_bridge-fixed-tags-v2.md).
+None of these numbers chose a value.
+
+**WS5's external harness** (DFL J03WPY and J03WQQ, open data, CC BY 4.0, the ball hidden on
+about 41% of scored frames; the bridge alone, because DFL has no Smart Tagging). The "all" row,
+with and without WS4:
+
+| match | spellF1 with | spellF1 without | macroF1 with / without | team accuracy with / without |
+|---|---|---|---|---|
+| J03WPY | 0.3840 [0.35–0.42] | 0.3698 [0.33–0.41] | 0.7950 / 0.7856 | 0.810 / 0.796 |
+| J03WQQ | 0.3597 [0.32–0.40] | 0.3494 [0.31–0.39] | 0.7680 / 0.7638 | 0.754 / 0.747 |
+| mean | 0.3719 | 0.3596 | 0.7815 / 0.7747 | 0.782 / 0.772 |
+
+WS4 helps on both matches (+0.012 spellF1 on average). The gain is inside the bootstrap noise,
+and it is never below the run without WS4.
+
+**On our match (checks only):**
+
+- The self-check's bridge + tags accuracy is 0.951, 0.952, 0.810 and 0.771 for 2, 5, 10 and
+  20 s hidden; the bridge alone gives 0.914, 0.921, 0.792 and 0.763. The tags are not inverted.
+- Match-wide, with / without WS4:
+    - possessions 365 / 357;
+    - mean duration 9.0 / 9.2 s;
+    - D rate 48.3% / 48.3%;
+    - home share 61.0% / 60.8%.
+- Public spellF1, a pipeline check only: 0.4778 / 0.4333, with overlapping intervals.
+
 ## Limitations and next steps
 
 - **Possessions entirely inside a gap are invisible to the bridge.** Only the tags can find them
