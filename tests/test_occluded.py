@@ -6,8 +6,10 @@ Synthetic data only (CLAUDE.md, rule 3).
 import numpy as np
 import pandas as pd
 
+from saha.combine.decode import CombineParams
 from saha.common import alignment, evidence, frame_table
-from saha.common.constants import A, H
+from saha.common.constants import A, H, X
+from saha.external import degrade, dfl, harness
 from saha.occluded import build as occluded
 from saha.occluded import selfcheck
 
@@ -51,31 +53,77 @@ def test_anchor_weighs_recent_touches():
 
 def test_gaps_stop_at_the_half_edges():
     n = FIRST_HALF[2] + 10
+    half = alignment.half_of_frames(n)
     control = np.full(n, occluded.NOBODY, dtype=np.int8)
     missing = np.zeros(n, dtype=bool)
     _, lo, hi = FIRST_HALF
     missing[lo - 5:lo + 30] = True        # starts before the half: only its graded part counts
     control[lo + 30:lo + 40] = occluded.AWAY
-    p, informed, gaps = occluded.bridge_gaps(control, missing)
+    p, informed, gaps = occluded.bridge_gaps(control, missing, half)
     assert gaps[0][:2] == (lo, lo + 30) and gaps[0][2] == 0.5 and gaps[0][3] < 0.5
     assert np.isnan(p[:lo]).all() and (p[lo:lo + 30] < 0.5).all() and informed[lo:lo + 30].all()
 
 
-def test_tag_reliability_learns_which_team_a_code_names():
-    n = 1000
-    control = np.full(n, occluded.NOBODY, dtype=np.int8)
-    control[0:500] = occluded.HOME
-    control[500:1000] = occluded.AWAY
-    instances = [("ATTACK", occluded.HOME, 0, 100), ("ATTACK", occluded.AWAY, 600, 700),
-                 ("ATTACK", occluded.HOME, 100, 200), ("DEFEND", occluded.AWAY, 200, 300),
-                 ("DEFEND", occluded.HOME, 700, 800), ("DEFEND", occluded.HOME, 900, 950)]
-    codes = occluded.tag_reliability(instances, control)
-    prior = occluded.TAG_PRIOR
-    assert codes["ATTACK"]["p"] == (3 + prior) / (3 + 2 * prior)
-    assert codes["DEFEND"]["p"] == (0 + prior) / (3 + 2 * prior)
-    tags = occluded.tag_logit(instances, codes, n)
-    assert tags[50] > 0 and tags[250] > 0 and tags[650] < 0 and tags[750] < 0
-    assert np.isnan(tags[400])
+def test_gaps_follow_the_half_array_not_this_match():
+    half = np.array([0] * 5 + [1] * 20 + [2] * 20 + [0] * 5, dtype=np.int8)
+    assert occluded.half_runs(half) == [(5, 25), (25, 45)]          # touching halves stay apart
+    control = np.full(len(half), occluded.NOBODY, dtype=np.int8)
+    missing = np.zeros(len(half), dtype=bool)
+    control[18:20] = occluded.HOME
+    missing[20:30] = True                 # crosses from half 1 into half 2: two gaps
+    control[30:32] = occluded.AWAY
+    p, informed, gaps = occluded.bridge_gaps(control, missing, half)
+    assert [g[:2] for g in gaps] == [(20, 25), (25, 30)]
+    assert (p[20:25] > 0.5).all() and (p[25:30] < 0.5).all() and informed[20:30].all()
+    assert not occluded.bridge_gaps(control, missing, np.zeros_like(half))[2]   # no half, no gap
+
+
+def tag_frame(code, team):
+    return pd.DataFrame({"code": [code], "team": [team], "start_frame": [10], "end_frame": [20]})
+
+
+def tag_value(code, team):
+    """Home log-odds of one tag on a frame it covers (NaN: no opinion)."""
+    tags = tag_frame(code, team)
+    return occluded.tag_logit(occluded.tag_instances(tags, 100), 100)[15]
+
+
+def test_each_code_has_a_fixed_side_from_its_definition():
+    value = float(occluded.logit(occluded.TAG_P))
+    assert tag_value("BUILD UP", "H") == value > 0                  # with the ball, by home
+    assert tag_value("DEFENDING IN MIDDLE THIRD", "H") == -value < 0   # without, by home
+    assert tag_value("DEFENSIVE TRANSITION", "A") == value > 0      # without, by away: home has it
+    assert tag_value("LONG BALL", "A") == -value
+    assert np.isnan(tag_value("GOALS", "H"))
+    assert np.isnan(tag_value("SET PIECES", "H"))
+    assert np.isnan(tag_value("SOMETHING NEW", "H"))
+    assert np.isnan(tag_value("BUILD UP", None))
+    assert all(side in (occluded.WITH_BALL, occluded.WITHOUT_BALL)
+               for side in occluded.TAG_SIDE.values())
+
+
+def test_agreeing_tags_are_averaged_not_summed():
+    instances = [("BUILD UP", occluded.HOME, 0, 50), ("PROGRESSION", occluded.HOME, 25, 75),
+                 ("DEFENDING IN DEFENSIVE THIRD", occluded.AWAY, 40, 60)]
+    tags = occluded.tag_logit(instances, 100)
+    value = float(occluded.logit(occluded.TAG_P))
+    np.testing.assert_allclose(tags[[10, 30, 45, 70]], value)      # one, two or three: the same
+    assert np.isnan(tags[90])
+
+
+def test_tag_counts_report_sides_and_left_out_codes():
+    tags = pd.DataFrame({
+        "code": ["BUILD UP", "BUILD UP", "DEFENSIVE TRANSITION", "SET PIECES", "GOALS",
+                 "SOMETHING NEW"],
+        "team": ["H", None, "A", "H", "A", "H"],
+        "start_frame": [0] * 6, "end_frame": [10] * 6,
+    })
+    codes, left_out = occluded.tag_counts(tags)
+    assert codes["BUILD UP"] == {"instances": 1, "side": "with"}
+    assert codes["DEFENSIVE TRANSITION"] == {"instances": 1, "side": "without"}
+    assert left_out == {"SET PIECES": 1, "GOALS": 1, "N/A": 1, "unknown": 1}
+    assert all(set(entry) == {"instances", "side"} for entry in codes.values())  # no agreement
+    assert occluded.tag_counts(None)[1] == {"SET PIECES": 0, "GOALS": 0, "N/A": 0, "unknown": 0}
 
 
 def test_set_pieces_and_teamless_tags_are_left_to_others():
@@ -110,7 +158,6 @@ def test_build_writes_only_on_missing_ball_frames_and_finds_the_team(small_match
     alive = has & hidden
     right = (p_home[alive] > 0.5) == (truth[alive] == H)
     assert right.mean() > 0.9
-    assert report["codes"]["BUILD UP"]["p"] > 0.5            # the synthetic phases are honest
 
     again = occluded.build(table)
     assert evidence.content_hash(*again) == evidence.content_hash(p_dead, p_home, weight)
@@ -130,6 +177,57 @@ def test_selfcheck_hides_the_ball_and_reports_aggregates(small_match, use_data, 
     out = capsys.readouterr().out
     assert "hide 0.4 s" in out and "bridge + tags" in out and "accuracy" in out
     assert occluded.TAG_SCALE == scale                       # restored
+
+
+def external_match(n_half=2000):
+    """A tiny dfl.ExternalMatch, like toy_match in tests/test_external.py, with halves at frames
+    0-1999 and 2010-4009 (not this match's). The ball is random (never a touch) except around two
+    hidden stretches: a slow ball at a home player's feet on both sides of 600-800 (half 1), and
+    at an away player's feet on both sides of 3000-3200 (half 2)."""
+    rng = np.random.default_rng(7)
+    half = np.concatenate([np.ones(n_half, np.int8), np.zeros(10, np.int8),
+                           np.full(n_half, 2, np.int8)])
+    n = len(half)
+    labels = np.where(half > 0, H, X).astype(np.int8)
+    labels[2010:] = A
+    ball = rng.random((n, 2)).astype(np.float32)
+    homes, aways = (0.5, 0.5), (0.3, 0.7)
+    players = np.empty((n, 4, 2), np.float32)
+    players[:] = np.array([homes, (0.1, 0.1), aways, (0.9, 0.9)], np.float32)
+    players[half == 0] = np.nan
+    ball[500:900] = (0.505, 0.5)                    # 0.5 m from the home player, standing still
+    ball[2900:3300] = (0.305, 0.7)                  # the same at the away player's feet
+    ball[600:800] = np.nan                          # hidden by hand
+    ball[3000:3200] = np.nan
+    match = dfl.ExternalMatch("toy-ws4", ball, np.zeros(n, np.float32), players,
+                              np.array([0, 0, 1, 1], np.int8), np.array(["a", "b", "c", "d"]),
+                              labels, half, {})
+    return degrade.degrade(match, degrade.Degradation(hidden_share=0.0))
+
+
+def test_build_runs_on_an_external_table_without_our_tags(monkeypatch):
+    table, labels = external_match()
+    assert "external" in table.meta and not table.ball_visible[600:800].any()
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("an external table must never get this match's Smart Tagging")
+
+    monkeypatch.setattr(occluded.smart_tagging, "load", forbidden)
+    report = {}
+    p_dead, p_home, weight = occluded.build(table, report=report)
+
+    has = np.isfinite(p_home)
+    assert np.isnan(p_dead).all()
+    assert not (has & ~(table.graded & ~table.ball_visible)).any()  # graded, ball missing only
+    assert has[600:800].all() and has[3000:3200].all()
+    assert (p_home[600:800] > 0.5).all() and (p_home[3000:3200] < 0.5).all()
+    assert (weight[has] == occluded.WEIGHT).all() and (weight[~has] == 0).all()
+    assert report["tagged"] == 0 and len(report["gaps"]) == 2
+    assert "left out: 0 instances" in occluded.summary(report, p_home)
+
+    entries = [{"name": "occluded", "module": "saha.occluded.build"}]
+    rows, status = harness.evaluate_table(table, labels, entries, CombineParams(), singles=False)
+    assert status["occluded"] == "ok" and rows[0]["sources"] == "all"
 
 
 def test_main_writes_valid_evidence(small_match, use_data, tmp_path, capsys):

@@ -13,10 +13,10 @@ It reports, per length: how many stretches qualified, coverage, accuracy, and ca
 each band of confidence max(p, 1 - p), the share right). A p of 0.8 should be right about 80% of
 the time (TEAM.md, WS4 success).
 
-No ground truth is used, so it may inform WS4's settings (CLAUDE.md, rule 2). Its caveats: the
-target is the touch team, not the truth, and a tracked ball is easier than a real gap (the
-real gaps are longer and happen in crowds and in the air). It is a sanity and calibration check,
-not the selector. Everything printed is aggregate.
+No ground truth is used. It is a check that catches errors and never chooses a value (DECISIONS
+D016, D017): no WS4 setting is changed because of its output. Its caveats: the target is the
+touch team, not the truth, and a tracked ball is easier than a real gap (the real gaps are longer
+and happen in crowds and in the air). Everything printed is aggregate.
 """
 
 import argparse
@@ -79,7 +79,7 @@ def run(table, tags, seconds):
             reduced = np.where(hidden, occluded.NOBODY, control).astype(np.int8)
             for name, scale in (("bridge", 0.0), ("bridge + tags", saved)):
                 occluded.TAG_SCALE = scale
-                p, _ = occluded.opinion(reduced, missing | hidden, instances)
+                p, _ = occluded.opinion(reduced, missing | hidden, instances, table.half)
                 coverage, accuracy, bands = score(p, control, hidden)
                 lines.append("  {:<14} coverage {:5.1%}  accuracy {}".format(
                     name, coverage, "--" if accuracy is None else "{:.3f}".format(accuracy)))

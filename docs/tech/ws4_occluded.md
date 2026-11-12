@@ -6,7 +6,7 @@ The ball is not tracked on 41% of graded frames, mostly in long stretches (media
 docs/EDA.md). WS4 gives `p_home` on exactly those frames: graded frames where `ball_visible` is
 false. It never writes `p_dead` (WS2) and never writes on a frame with a tracked ball (WS3).
 
-## Approach (v1)
+## Approach (v2)
 
 Two sources, fused in log-odds per frame.
 
@@ -29,21 +29,38 @@ first sighting after it.
     - When the two sides disagree, it crosses 0.5 once, where a hand-over is most likely. It
       never flickers.
 - A gap never reaches across a half. The side beyond the half's edge has no opinion.
+- The halves are the table's own `half` array (1 or 2 inside a graded half, 0 elsewhere). On our
+  match it is `alignment.half_of_frames()`, so the output is the same as cutting at the published
+  graded halves. On an external table from WS5's harness it is that match's halves.
 
-**2. Smart Tagging phases (weak evidence).** Every tag with a team says something about who has
-the ball, except SET PIECES: a restart's team is WS2's question (TEAM.md, boundaries).
+**2. Smart Tagging phases (weak evidence).** Each code's meaning comes from its official
+definition and is fixed. OVERVIEW.md defines the tag *Team* as "the team performing the event",
+and each code's definition says whether that team has the ball. Nothing is measured on this
+match (DECISIONS D017).
 
-- We do not assume what the tag's team means. In BUILD UP or PROGRESSION it is presumably the
-  team with the ball; in DEFENDING IN ... it is presumably the team without it. The algorithm
-  measures it instead.
-- For each code it takes the instances whose touches have a majority team, and counts how often
-  that team is the tagged one. Five pseudo-instances on each side shrink the share towards 0.5.
-  The result is `P(tagged team has the ball)`, and it is below 0.5 for a code that names the
-  defending side.
-- No ground truth is used for this. The share is measured on the tracked frames of this match by
-  the algorithm, on every run. Nobody chooses it by hand.
-- On a missing frame, the overlapping tags are averaged in log-odds and added to the bridge at
-  half strength.
+| side | codes | from the definition |
+|---|---|---|
+| with the ball, `P = TAG_P = 0.7` | BUILD UP, PROGRESSION, CREATING CHANCES | "offensive actions" |
+| | ATTACKING TRANSITION | "immediately after recovering the ball" |
+| | BALL IN FINAL THIRD | "the team maintains or plays the ball" |
+| | BALL IN THE BOX | the ball "enters or is played inside the rival box" |
+| | PLAYERS IN THE BOX | "attacking players ... during an offensive action" |
+| | LONG BALL | the passer's team: a loose ball stays with the last team that had it (CHALLENGE.md); the bridge's far side says who got it |
+| without the ball, `P = 1 − TAG_P = 0.3` | DEFENDING IN ATTACKING / MIDDLE / DEFENSIVE THIRD | "defensive actions" |
+| | DEFENSIVE TRANSITION | "immediately after losing possession" |
+| no opinion | SET PIECES | a restart's team is WS2's question (TEAM.md, boundaries) |
+| | GOALS | a stoppage and the other team's kick-off follow |
+| | team N/A, any other code | counted in the build's report, never an error |
+
+- `P` is P(the tagged team has the ball). `TAG_P = 0.7` says "more likely than not, but far from
+  sure": Smart Tagging is automatic, with false positives and negatives, and its windows are
+  phases, not possessions (DATA.md, OVERVIEW.md).
+- On a missing frame, the overlapping tags are averaged in log-odds, not summed, and added to the
+  bridge at `TAG_SCALE = 0.5`. So the tags give at most 0.5 × logit(0.7) ≈ 0.42 nats per frame.
+- No external dataset has Smart Tagging, so neither value can be tuned (D016). Both stay weak on
+  purpose.
+- An external table (WS5's harness, `"external"` in `table.meta`, the same test as
+  `saha/deadball/build.py`) gets no tags: never this match's.
 
 The result is clipped to [0.1, 0.9], with weight 1.
 
@@ -55,31 +72,37 @@ The result is clipped to [0.1, 0.9], with weight 1.
 - **The forward–backward chain** gives the switch position that minimises the expected error
   when nothing else is known. It is calibrated by construction under its own assumptions. It is
   also honest about long gaps: they fade to "no opinion", so they do not force a team.
-- **Measuring the tag's meaning** avoids a hand-written polarity table that could be wrong for
-  some code. It is also not a constant read off this match: the algorithm computes it on every run.
-- **The 0.9 clip.** The combiner adds `|home|` to the alive states (`saha/combine/viterbi.py`),
-  so a very confident `p_home` would also push towards "alive" inside a stoppage. Capping our
-  log-odds at about 2.2 nats per frame keeps WS2's `p_dead` in charge of that question.
+- **Each tag's meaning comes from its official definition.** Measuring it on this match's touches
+  (v1) would be a value that an algorithm estimates from this match on every run, which the
+  organizers' rules forbid (DECISIONS D017). The official definitions say which side each code
+  names, so no measurement is needed. The strength, `TAG_P`, is one modest value chosen by
+  reasoning, the same for every code.
+- **The 0.9 clip.** Since WS1's exact emissions, a confident `p_home` no longer pushes against D
+  ([experiments/20261105_ws1_exact-emissions.md](../../experiments/20261105_ws1_exact-emissions.md)).
+  The clip stays for another reason: the opinions inside one gap all come from the same two
+  sides, so they are not independent, and no single frame should decide alone.
 
-## Parameters and where they come from
+## Parameters and how each is set
 
-| parameter | value | reason |
+| parameter | value | how it is set |
 |---|---|---|
-| `CONTROL_M`, `CONTROL_SPEED` | 1.5 m, 5 m/s | the touch of `saha.tools.selfcheck`: at a player's feet, not passing |
-| `ANCHOR_HORIZON` | 2 s | the last touches before the ball disappears; older ones belong to another phase |
-| `ANCHOR_HALF_LIFE` | 0.5 s | a hand-over just before the gap must win over a long spell before it |
-| `ANCHOR_MAX` | 0.9 | the touch team is wrong sometimes (a contested ball, a defender passing close by) |
-| `MEAN_HOLD_S` | 12 s | team possessions last 10–20 s in top-flight football; short contested ones count here too |
-| `TAG_PRIOR` | 5 | a code needs a few dozen informative instances before its share moves far from 0.5 |
-| `TAG_SCALE` | 0.5 | tags are long windows only loosely aligned with play (docs/EDA.md): weak evidence |
-| `P_MIN`, `P_MAX` | 0.1, 0.9 | see the 0.9 clip above |
+| `CONTROL_M`, `CONTROL_SPEED` | 1.5 m, 5 m/s | reasoning: the touch of `saha.tools.selfcheck`, at a player's feet, not passing |
+| `ANCHOR_HORIZON` | 2 s | reasoning: the last touches before the ball disappears; older ones belong to another phase |
+| `ANCHOR_HALF_LIFE` | 0.5 s | reasoning: a hand-over just before the gap must win over a long spell before it |
+| `ANCHOR_MAX` | 0.9 | reasoning: the touch team is wrong sometimes (a contested ball, a defender passing close by) |
+| `MEAN_HOLD_S` | 12 s | football knowledge: team possessions last 10–20 s in top-flight football; short contested ones count here too |
+| code table (`TAG_SIDE`) | with / without / none | the official definitions (OVERVIEW.md), table above |
+| `TAG_P` | 0.7 | reasoning: more likely than not, far from sure (automatic tags, phase windows) |
+| `TAG_SCALE` | 0.5 | reasoning: tags are long windows only loosely aligned with play (docs/EDA.md): weak evidence |
+| `P_MIN`, `P_MAX` | 0.1, 0.9 | reasoning: see the 0.9 clip above |
 
-None of these was chosen on the public 5 minutes. They are checked with:
-
-- `python -m saha.occluded.selfcheck` (label-free, below);
-- WS5's external data, once it exists.
+Every value is set by football and physics reasoning or by the official definitions. None was
+fitted, and none was chosen on this match, its tracking, its tags or the public 5 minutes. The
+self-check (below) and WS5's harness check them; they never choose them (D016, D017).
 
 ## Checks
+
+These checks catch errors. They never choose a value (D016, D017).
 
 - **Self-check, no labels:** `python -m saha.occluded.selfcheck`.
     - It hides 2, 5, 10 and 20 s of tracked ball in the middle of long tracked runs, and recomputes
@@ -99,24 +122,23 @@ None of these was chosen on the public 5 minutes. They are checked with:
     - With the bridge alone: 0.807 and 57%. Synthetic possessions (3–25 s) often fit entirely
       inside a gap, so the edges alone cannot find them.
     - With the bridge and the tags: 0.992 and 97%. This is optimistic: the synthetic tags are
-      exactly aligned with the truth, and the real ones are not.
+      exactly aligned with the truth, and the real ones are not. (Measured with v1; the
+      synthetic tags are honest, so v2's fixed table reads them the same way.)
+- **WS5's external harness:** `python -m saha.external.score` runs the same `build(table)` on
+  degraded DFL matches. It scores the bridge alone, because DFL has no Smart Tagging.
 
 ## Limitations and next steps
 
-- **Possessions entirely inside a gap are invisible to the bridge.** Only the tags (and later the
-  team shape) can find them. Next: a team-shape model trained without labels on the tracked
-  frames, with the touch team as the target. Its features would be:
-    - team centroids and their spread;
-    - the height of each defensive line;
-    - who is in the opponent's half;
-    - pressing speed near the last ball position.
-
-  The model is then applied to the missing frames. It needs no ground truth and no hand labels.
-- **The tags' timing.** Restart tags lag the real restart by seconds (docs/EDA.md), and phase tags
-  probably do too. Shifting each tag window by a lag measured on the touches is the next
-  refinement.
+- **Possessions entirely inside a gap are invisible to the bridge.** Only the tags can find them
+  today. A team-shape model (team centroids and spread, the height of each defensive line, who is
+  in the opponent's half, pressing near the last ball position) could too, but only if it is
+  trained on WS5's external data (D017, D024). Never on this match's tracking. Not before the
+  feature freeze.
+- **The tags' timing stays as delivered.** Restart tags lag the real restart by seconds
+  (docs/EDA.md), and phase tags may too. No external set has Smart Tagging to measure a lag on,
+  and it must not be measured on this match (D017), so no shift is applied.
 - **Dead ball inside gaps.** `p_home` is conditional on the ball being alive. Inside stoppages,
-  WS2 decides; the 0.9 clip keeps us from fighting it.
+  WS2 decides.
 - **Weight.** The per-frame opinions of one gap all come from the same two sides, so they are not
   independent. Weight 1 is a placeholder: WS1 sets the scale in `configs/pipeline.toml` on WS5's
   data.
@@ -125,12 +147,13 @@ None of these was chosen on the public 5 minutes. They are checked with:
 
 - The tactical ATD, read through the frame table: ball and player positions, ball visibility.
 - Smart Tagging: codes, teams and windows.
+- OVERVIEW.md's Smart Tagging definitions: the source of each code's side.
 - Not used: the homography, the videos.
 
 ## Training data
 
-None. Every number is either a stated parameter or measured by the algorithm on this match's
-tracking, without labels.
+None. Every number is set by football reasoning or by the official definitions, and nothing is
+measured or fitted on this match.
 
 ## Reproduction
 
