@@ -124,6 +124,27 @@ and they reproduce it:
 - **Coverage:** the model has an opinion on 98.5% of the graded frames with the ball; it is
   silent on the frames next to a gap.
 
+**Missing players** (second rule, fixed before its run).
+
+- **The test.** DFL tracks all 22 players; our tracking about 20.5 per graded frame. For each
+  held-out match, players were removed in runs (mean 5 s, `saha.shape.train.drop_players`) at
+  0%, 7% (about our level) and 15% of player-frames, and the accuracy was measured on alive
+  frames with the ball (seed 0).
+- **The rule.** Retrain with every match also added once with 10% of player-frames removed, as
+  for the shape model, and adopt this if, held out, the accuracy at 7% rises by at least 0.010
+  while the accuracy with every player falls by no more than 0.005.
+
+| players removed | trained on complete matches | trained with missing players too |
+|---|---|---|
+| 0% | 0.908 | 0.908 (−0.000) |
+| 7% | 0.897 | 0.902 (+0.005) |
+| 15% | 0.888 | 0.899 (+0.011) |
+
+- **The rule does not hold** (+0.005 at 7%, against the 0.010 required), so the model stays
+  trained on complete matches. The variant was ahead on all 7 matches at 7%, by little.
+- **The model is robust to missing players:** it loses 0.011 at our level, where the shape
+  model lost 0.03 before it was trained with missing players.
+
 **On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
 only:
 
@@ -138,13 +159,16 @@ only:
   may be noisier. The windows skip frames without the ball, and the held-out runs hide it at
   random; real tracking loses it more often in crowded play, so our tracked frames may be harder.
 - **Missing players.** DFL tracks all 22 players. A missing player near the ball changes the
-  nearest-player distances, and the model was trained on complete matches.
+  nearest-player distances. At our level (7% of player-frames removed at random) the model
+  loses 0.011 of accuracy; if our tracking misses players near the ball more often than at
+  random, it loses more.
 - **The labels are DFL's,** made stricter by WS1's proxy, not WS5's relabelling.
 - **This is a second change after the freeze** (D027). If it is not merged and reproduced on two
   machines by 14 November 18:00 Turkey time, the frozen version ships.
 
 ## Decision
 
-Adopted under D027: `onball` at scale 2, next to WS3 and `nearest`, in `configs/pipeline.toml`.
-The rule was fixed before the pipeline results were read, and it holds out of sample. The public
-5 minutes played no part (CLAUDE.md, rule 2).
+Adopted under D027: `onball` at scale 2, next to WS3 and `nearest`, in `configs/pipeline.toml`,
+trained on complete matches. The first rule was fixed before the pipeline results were read and
+holds out of sample; the second, fixed before its run, does not hold, so the training stays as
+it was. The public 5 minutes played no part (CLAUDE.md, rule 2).

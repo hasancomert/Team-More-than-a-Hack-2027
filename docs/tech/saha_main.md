@@ -139,6 +139,9 @@ spellF1 on DFL's raw labels; the first column is seed 0, the second 3 seeds.
     - The shape model is trained with players removed as well. On DFL with players removed to our
       level, it keeps 0.876 accuracy where the ball is hidden, against 0.882 with every player
       present.
+    - The on-ball model keeps 0.897 accuracy where the ball is tracked with players removed to
+      our level, against 0.908 with every player present. Training it with players removed
+      gained too little to pass its rule.
 
 ## Training data
 
@@ -200,9 +203,9 @@ public window has too few possessions to say more.
   evidence is weak by design and was never validated.
 - **Dead ball where the ball is missing.** On DFL, 21% of live hidden-ball frames are called
   dead, against 4.5% where the ball is tracked.
-- **Missing players.** Trained with players removed too, the shape model still loses about half a
-  point of accuracy at our tracking level, and more if our tracking misses more players than we
-  simulated. The direction of attack it needs is found per half; a half without a clear margin
+- **Missing players.** At our tracking level, the shape model (trained with players removed too)
+  still loses about half a point of accuracy, and the on-ball model about one point; both lose
+  more if our tracking misses more players, or players nearer the ball, than we simulated. The direction of attack it needs is found per half; a half without a clear margin
   gets no opinion.
 - **No abstention.** We never answer X inside a possession, although an X there would cost
   nothing.

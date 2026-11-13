@@ -122,6 +122,9 @@ tracked ball, next to WS3 and `nearest`.
       manifest are in `saha/onball/models/` (D020).
     - Held out, it gets the team right on 0.908 of the alive frames with the ball (seed 0), where
       the nearest player gets 0.780.
+    - With 7% of player-frames removed (our level), it keeps 0.897. Training with missing
+      players too would have gained only 0.005 there, below the 0.010 that the rule fixed
+      before the run required, so it is trained on complete matches.
 - **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
   scale 2. The model is silent on the few frames at each edge of a tracking gap, where the ball's
   speed is undefined; WS3 and `nearest` still cover them.
