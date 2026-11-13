@@ -207,3 +207,24 @@ come here (CLAUDE.md).
     - It would also put the byte-identical reproduction at risk across ffmpeg versions.
 
   WS2's detector stays in the code, off by default.
+
+## 2026-11-13
+
+- **D026 (team leader, 13 November) One improvement after the freeze: the shape model.**
+    - **Why.** WS1 measured on WS5's DFL matches where the frozen version loses spellF1. Giving it
+      the true team only where the ball is missing would raise spellF1 by 0.24; that is the
+      largest single loss. WS4's bridge gets the team right on about 65% of those frames.
+    - **What.** `saha/shape`: a logistic model of the two teams' shape and motion. It uses no
+      ball, and it is trained on WS5's seven DFL matches only (CC BY 4.0). Nothing of our match
+      is fitted. WS2's earlier team-shape model, fitted on this match, was dropped under D017;
+      this one is a different model, trained on external labels.
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_shape-model.md`). The model
+      sits on graded frames without the ball at scale 2, and WS4 stays.
+    - **An exception to D011.** `shape` writes `p_home` on the same frames as WS4; the combiner
+      adds the two in log-odds.
+    - **The model file.** It is a 3 KB JSON of coefficients, `saha/shape/model.json`, which records
+      its training script, data and licence. `python -m saha.shape.train` rebuilds it. The guard
+      allows JSON up to 10 KB, and D020's pickle rule does not apply.
+    - **Deadline.** The version must be merged and reproduced on two machines by 14 November,
+      18:00 Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
+      whichever ships.

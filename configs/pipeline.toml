@@ -39,3 +39,9 @@ scale = 1.0
 name = "occluded"       # WS4
 module = "saha.occluded.build"
 scale = 1.0
+
+[[evidence]]
+name = "shape"          # WS1: team shape where the ball is missing (DECISIONS D026)
+module = "saha.shape.build"
+scale = 2.0             # as strong as WS3's weight 2 on tracked frames; rule fixed before the
+                        # runs: experiments/20261113_ws1_shape-model.md

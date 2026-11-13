@@ -1,8 +1,8 @@
 # WS1: data layer, evidence interface, combiner and reproduction
 
 Owner: Hasan (team leader). Code: `saha/common/`, `saha/combine/`, `saha/nearest/`,
-`saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of 8 November; the final numbers come from
-FINAL_CHOICE.md.
+`saha/shape/`, `saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of 8 November, with the shape
+model added on 13 November; the final numbers come from FINAL_CHOICE.md.
 
 ## Approach
 
@@ -58,6 +58,38 @@ result is the same on every machine.
 for the nearest player's team where the ball is tracked, and `p_dead` from whether a ball has been
 seen within 2 s. It is the reference and the fallback.
 
+**`shape`** (D026) says who has the ball while it is missing. It reads the two teams' shape and
+motion, never the ball, and writes `p_home` on the graded frames without a tracked ball, next to
+WS4.
+
+- **Why.** On WS5's DFL matches, the true team on the frames without the ball alone would raise
+  the frozen version's spellF1 by 0.24. No other part of the system loses as much. WS4's bridge
+  got the team right on about 65% of those frames.
+- **Orientation.** In each half, take each team's player nearest the low-x goal, with the median
+  over the half.
+    - For the team that defends that goal, this is its goalkeeper or its last defender.
+    - For the other team, it is a forward, who stays further out to be onside.
+    - So the team with the lower median defends the low-x goal and attacks towards high x.
+    - On WS5's DFL matches the two medians are 21–27 m apart. Below 10 m the direction is unclear,
+      and that half gets no opinion.
+- **Features.** For each team, in its own attacking frame:
+    - the centroid, the deep and the advanced players (15th and 85th percentiles), the length and
+      the width;
+    - the share of players in the opponent's half;
+    - the mean velocity towards the opponent's goal and the mean speed.
+
+  Each is smoothed over 1 s and over 4 s, and its change over the next 2 s is added. A player
+  velocity above 12 m/s is a tracking jump and is ignored.
+- **Model.** A logistic regression on home's features minus away's, with no intercept and every
+  example also added with the teams swapped. So it cannot learn a home or away side: swapping the
+  teams turns p into 1 − p.
+    - It is trained on all seven DFL matches, on alive frames, every 5th frame.
+    - The labels are DFL's possession, with every possession under 2 s between two of the other
+      team merged into them.
+    - The 24 coefficients are in `saha/shape/model.json`.
+- **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
+  scale 2.
+
 ## Assets
 
 | asset | use |
@@ -68,8 +100,12 @@ seen within 2 s. It is the reference and the fallback.
 
 ## Training data
 
-WS1 trains nothing.
+WS1 trains one model, `shape`, on external data only.
 
+- **The shape model.** It is trained on WS5's seven DFL/IDSSE matches (Bassek, Weber, Rein and
+  Memmert, 2025; CC BY 4.0), with DFL's own possession labels, made stricter as described above.
+  `python -m saha.shape.train` rebuilds `saha/shape/model.json` from them. Nothing of our match is
+  fitted.
 - **Prior.** The prior comes from the model's definition.
 - **Costs.** The switching costs are reasoned placeholders (35 nats). They are to be tuned on
   WS5's external matches once those mean what ours mean (D017).
@@ -118,5 +154,9 @@ python -m saha.pipeline --fresh --data <path>
   player. So `nearest` runs at 0.5 next to WS3 v2.1, which writes weight 2. That choice was made
   on WS5's seven DFL matches, with a rule fixed before the runs, and it held on raw and on
   controlled labels (experiments/20261111_ws1_nearest-half-with-v21.md).
+- **The shape model transfers from seven German matches.** It has never seen Barcelona's or
+  Athletic's style. The tracking may also miss players more often than DFL's.
+- **The orientation rule assumes goalkeepers are tracked.** A half without a clear 10 m margin
+  gets no opinion from `shape`, rather than a wrong one.
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.
 - **WS2's decision is final.** It overrides every other `p_dead` (D022).
