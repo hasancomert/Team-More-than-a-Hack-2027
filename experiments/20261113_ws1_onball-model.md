@@ -109,11 +109,20 @@ degradation used seeds 0, 1 and 2; point estimates.
   as fixed.
 
 **The repository package, checked the same way.** The table above comes from WS1's prototype.
-`saha.onball.train.fit` and `saha.onball.build` were then run on the same held-out cases. On
-the first four matches (12 runs) they reproduce it: +0.041 on raw labels and +0.054 on
-controlled-2s at scale 2, ahead on 12 of 12 runs, and frame accuracy 0.900 at seed 0, as the
-prototype's 0.900 on the same matches. Each run is within 0.007 of the prototype's. The other
-three matches follow.
+`saha.onball.train.fit` and `saha.onball.build` were then run on the same 21 held-out cases,
+and they reproduce it:
+
+| labels | the shape version | + `saha.onball`, scale 2 | Δ | ahead |
+|---|---|---|---|---|
+| raw | 0.4898 | 0.5309 | +0.041 | 7, 7, 7 |
+| controlled-1s | 0.5195 | 0.5666 | +0.047 | 7, 7, 7 |
+| controlled-2s | 0.5325 | 0.5868 | +0.054 | 7, 7, 7 |
+
+- Each run is within 0.010 of the prototype's; on average the package is 0.001 higher.
+- **Frame accuracy** at seed 0, on alive frames with the ball: 0.908 (by match: 0.907, 0.888,
+  0.911, 0.894, 0.913, 0.914, 0.928), as the prototype's.
+- **Coverage:** the model has an opinion on 98.5% of the graded frames with the ball; it is
+  silent on the frames next to a gap.
 
 **On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
 only:
