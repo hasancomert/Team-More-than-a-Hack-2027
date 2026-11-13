@@ -9,7 +9,7 @@ and dropped, the training data, the possession rules, the limitations and the re
 
 ## Summary
 
-We label each frame from five sources of evidence and one decoder. Each source answers one of
+We label each frame from six sources of evidence and one decoder. Each source answers one of
 two questions on its own frames: is the ball dead, and, if it is alive, which team has it. An
 exact integer combiner adds their log-odds, and a Viterbi pass over H, A and D turns the result
 into few, long possessions.
@@ -19,7 +19,7 @@ into few, long possessions.
   Nothing is fitted on the provided game.
 - **The external benchmark.** We degrade the seven DFL matches to our conditions, with the ball
   hidden on 41% of frames in long stretches. On them, the submitted version scores a mean
-  spellF1 of **0.49** with DFL's own labels and **0.53** with a stricter "controlled possession"
+  spellF1 of **0.53** with DFL's own labels and **0.59** with a stricter "controlled possession"
   reading of them. The nearest-player baseline with our dead ball scores 0.32 on the same
   matches. The official baseline scores 0.2433 on the provided game.
 - **Reproduction.** `python -m saha.pipeline --fresh --data <path>` rebuilds the file byte for
@@ -34,6 +34,7 @@ tracking ──► frame table ──► evidence builders ───────
                               visible   p_home where the ball is tracked     Viterbi
                               occluded  p_home where the ball is missing     over H/A/D
                               shape     p_home where the ball is missing
+                              onball    p_home where the ball is tracked
 ```
 
 | source | owner | what it says | how it is set |
@@ -43,6 +44,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `visible` | WS3 | the team in possession while the ball is tracked: touches, with a hand-over only when the new team confirms it | reasoned values; two settings chosen on DFL |
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
 | `shape` | WS1 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
+| `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
 
 **Why this design.**
 
@@ -55,9 +57,16 @@ tracking ──► frame table ──► evidence builders ───────
   per step), so the submission is byte-identical on every machine.
 
 **Where the score is lost.** We measured it on the external matches by giving the system the
-truth for one part at a time. Before the shape model, a perfect dead ball would have raised
-spellF1 from 0.39 to 0.45, and the true team where the ball is missing to 0.63. That second gap
-was the largest, and the shape model was built for it.
+truth for one part at a time, and built a model for the largest gap each time.
+
+| that part perfect | before the shape model | before the on-ball model |
+|---|---|---|
+| nothing | 0.39 | 0.49 |
+| the dead ball | 0.45 | 0.57 |
+| the team where the ball is missing | **0.63** | 0.62 |
+| the team where the ball is tracked | 0.66 | **0.74** |
+
+spellF1 on DFL's raw labels; the first column is seed 0, the second 3 seeds.
 
 ## The possession rules we implemented
 
@@ -67,6 +76,10 @@ was the largest, and the shape model was built for it.
     - A deflection or a lost duel does not count.
     - The hand-over is placed at the new team's first touch.
     - After a restart or a gap in the tracking, the first touch starts a possession.
+- **Who has a tracked ball (WS1).** Next to WS3's touch rules, a model trained on DFL reads the
+  ball and the players around it: how near each team's players are, how fast they close in,
+  where the ball is going, and the two teams' shape. Its inputs are chosen for the moments where
+  the nearest player misleads: passes in flight, duels and loose balls.
 - **Restarts and stoppages (WS2).** A stoppage opens near a stop event: the ball leaving the
   pitch, or the ball vanishing while everyone slows down. It closes at a confirmed restart:
     - a kick-off or a throw-in;
@@ -95,7 +108,7 @@ was the largest, and the shape model was built for it.
 | Smart Tagging | used: kick-off windows (WS2); phase sides, fixed from their definitions (WS4) |
 | homography, broadcast feed | not used: the tracking is already in pitch coordinates |
 | tactical video and audio | **dropped**: WS2's whistle detector works, but it stays off (D025); its benefit cannot be measured on external data, and it needs the 5 GB video |
-| DFL/IDSSE open data | trains the shape model; benchmark for every package (WS5's harness) |
+| DFL/IDSSE open data | trains the shape and on-ball models; benchmark for every package (WS5's harness) |
 | SkillCorner open data | trains WS2's dead-ball classifier and sets its decoder |
 | TU Dortmund whistle recordings | set the whistle threshold; dropped with the whistle |
 
@@ -108,6 +121,8 @@ was the largest, and the shape model was built for it.
 - **Two settings.** `nearest` at 0.5 without WS3 v2.1 lost on held-out matches (adopted with
   v2.1). A gradient-boosting shape model was within noise of the logistic one, and the logistic
   one stayed.
+- **A logistic on-ball model.** Held out, it got the team right on 0.887 of the frames with the
+  ball, against 0.908 for gradient boosting, which was kept.
 
 ## Missing and noisy tracking
 
@@ -131,12 +146,12 @@ None of it comes from the provided game.
 
 | dataset | source and licence | labels, and who made them | amount | used for |
 |---|---|---|---|---|
-| DFL/IDSSE open data | Bassek, Weber, Rein and Memmert (2025), *Scientific Data*; CC BY 4.0 | DFL's official match data (Sportec Solutions): ball possession and ball status on every frame | 7 matches, Bundesliga and 2. Bundesliga 2022/23, 25 fps | training the shape model (110,571 frames); benchmark for every package; WS2's pace constants (checked) |
+| DFL/IDSSE open data | Bassek, Weber, Rein and Memmert (2025), *Scientific Data*; CC BY 4.0 | DFL's official match data (Sportec Solutions): ball possession and ball status on every frame | 7 matches, Bundesliga and 2. Bundesliga 2022/23, 25 fps | training the shape and on-ball models (110,571 frames each); benchmark for every package; WS2's pace constants (checked) |
 | SkillCorner open data | github.com/SkillCorner/opendata; MIT, © SkillCorner | SkillCorner's phases of play | 20 A-League 2024/25 matches, 10 fps | training WS2's dead-ball classifier; its decoder settings |
 | TU Dortmund Whistle Detection Dataset | Kleingarn and Brämer (2024), TUDOdata; CC BY-SA 4.0 | its authors: whistle blasts in RoboCup recordings | test split, 249 blasts | one number, the whistle threshold; not used by the submission (whistle off) |
 
 **DFL's possession labels change on every touch.** CHALLENGE.md counts only controlled
-possession, so we also scored, and trained the shape model, on a stricter reading: a possession
+possession, so we also scored, and trained both WS1 models, on a stricter reading: a possession
 under 2 s between two possessions of the other team is merged into them. Choices are reported on
 both readings.
 
@@ -151,13 +166,15 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
 | + WS3 v2 | 0.356 | 0.399 |
 | + WS3 v2.1 and `nearest` at 0.5 | 0.387 | 0.420 |
 | + WS4 v2: the version frozen on 12 November | 0.394 | 0.427 |
-| **+ shape: the submitted version** | **0.491** | **0.531** |
+| + shape | 0.491 | 0.531 |
+| **+ on-ball: the submitted version** | **0.531** | **0.587** |
 
 - The rows are seed 0.
-- **The shape model was evaluated leaving one match out.** It was fitted on the six other
-  matches every time.
-- **Over three degradation seeds,** the frozen version scores 0.398 raw and 0.433 controlled;
-  the submitted one scores 0.490 and 0.533, ahead on 21 of 21 runs.
+- **Both WS1 models were evaluated leaving one match out.** They were fitted on the six
+  other matches every time.
+- **Over three degradation seeds:** the frozen version scores 0.398 raw and 0.433 controlled;
+  with the shape model, 0.490 and 0.533, ahead on 21 of 21 runs; with the on-ball model too,
+  0.530 and 0.586, ahead of the shape version on 21 of 21 runs.
 - **Every step was chosen with a rule fixed before its runs,** and is written up in an
   experiment record.
 
@@ -209,6 +226,8 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
   does not depend on the machine.
 - **The shape model's coefficients** are in `saha/shape/model.json`. `python -m saha.shape.train`
   rebuilds them from the DFL matches.
+- **The on-ball model** is a pickle with its manifest in `saha/onball/models/`, trained on one
+  thread with a fixed seed. `python -m saha.onball.train` rebuilds it from the DFL matches.
 
 ## How we kept to the rules
 
@@ -222,8 +241,8 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
   published half boundaries.
 - **The public 5 minutes checked the pipeline and chose nothing.** The packages' values come from
   football reasoning or from comparisons on external data. WS1's choices after 11 November
-  (`nearest`'s scale, the shape model and its training) were made with a rule written down
-  before their runs.
+  (`nearest`'s scale, the shape model and its training, the on-ball model) were made with a rule
+  written down before their runs.
 - **The match data never left team members' machines.** Not in git, cloud storage or chat;
   a git guard enforces it, and `main`'s history passes it.
 - **AI assistants (Claude Code)** wrote code and saw aggregate output only: counts, percentages

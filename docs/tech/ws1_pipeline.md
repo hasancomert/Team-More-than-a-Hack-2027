@@ -1,8 +1,9 @@
 # WS1: data layer, evidence interface, combiner and reproduction
 
 Owner: Hasan (team leader). Code: `saha/common/`, `saha/combine/`, `saha/nearest/`,
-`saha/shape/`, `saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of 8 November, with the shape
-model added on 13 November; the final numbers come from FINAL_CHOICE.md.
+`saha/shape/`, `saha/onball/`, `saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of
+8 November, with the shape and on-ball models added on 13 November; the final numbers come
+from FINAL_CHOICE.md.
 
 ## Approach
 
@@ -94,6 +95,37 @@ WS4.
 - **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
   scale 2.
 
+**`onball`** (D027) says who has the ball while it is tracked. It reads the ball and the players
+around it, with the two teams' shape as context, and writes `p_home` on the graded frames with a
+tracked ball, next to WS3 and `nearest`.
+
+- **Why.** With the shape model in, the true team on the frames with the ball alone would raise
+  spellF1 on WS5's DFL matches from 0.49 to 0.74 (raw labels): the largest loss left. The
+  nearest player is right on 78% of those frames, held out, and WS3 and `nearest` both start
+  from it.
+- **Features** (88), for each team in its own attacking frame (the orientation of `shape`):
+    - the distance from the ball to its nearest and second-nearest player, capped at 30 m;
+    - its players within 5 m and within 10 m of the ball;
+    - the nearest player's speed towards the ball;
+    - the ball's x, and the ball's velocity towards the team's goal.
+
+  Each is averaged over a centred 0.5 s and a centred 2 s window, the second before and the
+  second after; the averages skip frames without the ball. Added to them: the ball's speed,
+  acceleration and position, raw and over 1 s, and `shape`'s 24 features, home minus away.
+- **Model.** scikit-learn's histogram gradient boosting (300 trees of up to 31 leaves, learning
+  rate 0.05, at least 200 frames per leaf). Every example is also added with the teams swapped,
+  and the answer is the mean of the model's answers in both orders, so swapping the teams turns
+  p into 1 − p.
+    - It is trained on all seven DFL matches, on alive frames, every 5th frame, with the same
+      labels as `shape`.
+    - Training runs on one thread with a fixed seed and no early stopping. The pickle and its
+      manifest are in `saha/onball/models/` (D020).
+    - Held out, it gets the team right on 0.908 of the alive frames with the ball (seed 0), where
+      the nearest player gets 0.780.
+- **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
+  scale 2. The model is silent on the few frames at each edge of a tracking gap, where the ball's
+  speed is undefined; WS3 and `nearest` still cover them.
+
 ## Assets
 
 | asset | use |
@@ -104,12 +136,15 @@ WS4.
 
 ## Training data
 
-WS1 trains one model, `shape`, on external data only.
+WS1 trains two models, `shape` and `onball`, on external data only.
 
 - **The shape model.** It is trained on WS5's seven DFL/IDSSE matches (Bassek, Weber, Rein and
   Memmert, 2025; CC BY 4.0), with DFL's own possession labels, made stricter as described above.
   `python -m saha.shape.train` rebuilds `saha/shape/model.json` from them. Nothing of our match is
   fitted.
+- **The on-ball model.** The same matches and labels. `python -m saha.onball.train` rebuilds
+  `saha/onball/models/onball.pkl` and its manifest, which records the data, the licence, the
+  library versions and the file's SHA256.
 - **Prior.** The prior comes from the model's definition.
 - **Costs.** The switching costs are reasoned placeholders (35 nats). They are to be tuned on
   WS5's external matches once those mean what ours mean (D017).
@@ -163,5 +198,9 @@ python -m saha.pipeline --fresh --data <path>
   with every player present (held out, after training with missing players).
 - **The orientation rule assumes goalkeepers are tracked.** A half without a clear 10 m margin
   gets no opinion from `shape`, rather than a wrong one.
+- **`onball` reads the same frames as WS3 and `nearest`.** The three are not independent. Its
+  scale was fixed by reasoning, as for WS3 and `shape`, and checked on DFL with a rule fixed
+  before the runs (experiments/20261113_ws1_onball-model.md). It has seen only DFL's tracking,
+  where the ball is tracked on every frame; ours may be noisier.
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.
 - **WS2's decision is final.** It overrides every other `p_dead` (D022).

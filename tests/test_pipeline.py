@@ -15,7 +15,8 @@ def test_pipeline_end_to_end_is_correct_and_deterministic(full_match, use_data, 
 
     summary = json.loads(out.with_suffix(".summary.json").read_text())
     assert summary["sha256"] == first
-    assert set(summary["evidence"]) == {"nearest", "deadball", "visible", "occluded", "shape"}
+    assert set(summary["evidence"]) == {"nearest", "deadball", "visible", "occluded", "shape",
+                                        "onball"}
     assert summary["match"]["x_rate"] == 0.0
 
     # The synthetic story is easy: the plumbing is right only if the truth comes back.

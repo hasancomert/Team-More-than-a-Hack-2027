@@ -228,3 +228,22 @@ come here (CLAUDE.md).
     - **Deadline.** The version must be merged and reproduced on two machines by 14 November,
       18:00 Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
       whichever ships.
+- **D027 (team leader, 13 November) A second improvement after the freeze: the on-ball model.**
+    - **Why.** With the shape model in, WS1 measured again on WS5's DFL matches where the version
+      loses spellF1. Giving it the true team only where the ball is tracked would raise spellF1
+      from 0.49 to 0.74 (raw labels, 7 matches × 3 seeds); that is now the largest single loss.
+      On those frames the nearest player alone is right on 78% of alive frames.
+    - **What.** `saha/onball`: a gradient-boosting model of the ball and the players around it,
+      with the two teams' shape as context. It is trained on WS5's seven DFL matches only
+      (CC BY 4.0). Nothing of our match is fitted. Held out, it gets the team right on 91% of
+      alive frames where the ball is tracked.
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_onball-model.md`). The
+      model sits on graded frames where the ball is tracked, at scale 2, and WS3 and `nearest`
+      stay.
+    - **An exception to D011.** `onball` writes `p_home` on the same frames as WS3; the combiner
+      adds the two in log-odds.
+    - **The model file.** A 1.2 MB pickle under `saha/onball/models/`, with its manifest (D020).
+      It is trained on one thread with a fixed seed; `python -m saha.onball.train` rebuilds it.
+    - **Deadline.** As in D026: merged and reproduced on two machines by 14 November, 18:00
+      Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
+      whichever ships.

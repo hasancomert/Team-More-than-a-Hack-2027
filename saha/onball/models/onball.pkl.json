@@ -1,0 +1,27 @@
+{
+  "model": "onball.pkl",
+  "training_script": "saha/onball/train.py",
+  "command": "python -m saha.onball.train",
+  "data": "DFL/IDSSE open data (Bassek, Weber, Rein and Memmert, 2025, Scientific Data), matches J03WMX, J03WN1, J03WOH, J03WOY, J03WPY, J03WQQ, J03WR9; labels: DFL ball possession on alive frames, possessions under 2 s between two of the other team merged into them",
+  "licence": "CC BY 4.0, (c) DFL / Sportec Solutions",
+  "augmentation": "every example also with the teams swapped",
+  "seed": 0,
+  "params": {
+    "max_iter": 300,
+    "learning_rate": 0.05,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 200,
+    "l2_regularization": 1.0,
+    "early_stopping": false,
+    "random_state": 0
+  },
+  "libraries": {
+    "python": "3.11.17",
+    "numpy": "2.3.5",
+    "scikit-learn": "1.9.1",
+    "threads": 1
+  },
+  "frames": 221142,
+  "features": 88,
+  "sha256": "47ed283d7207fbd9857a20d40adf5dc20b8e49dddb8cfc5b6a12f13ec86ab0a3"
+}

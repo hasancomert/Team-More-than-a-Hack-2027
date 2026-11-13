@@ -45,3 +45,9 @@ name = "shape"          # WS1: team shape where the ball is missing (DECISIONS D
 module = "saha.shape.build"
 scale = 2.0             # as strong as WS3's weight 2 on tracked frames; rule fixed before the
                         # runs: experiments/20261113_ws1_shape-model.md
+
+[[evidence]]
+name = "onball"         # WS1: learned team model where the ball is tracked (DECISIONS D027)
+module = "saha.onball.build"
+scale = 2.0             # as WS3 and shape; rule fixed before the runs:
+                        # experiments/20261113_ws1_onball-model.md

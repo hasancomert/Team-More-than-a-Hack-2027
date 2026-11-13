@@ -42,6 +42,16 @@ def load_model(path=MODEL_PATH):
     return model
 
 
+def oriented_frames(table, halves=None):
+    """The frames of the halves whose direction of attack is clear (MIN_MARGIN_M)."""
+    oriented = np.zeros(table.n_frames, dtype=bool)
+    for start, stop, home, away in (halves or shape_features.deepest_medians(table)):
+        # The two teams' deepest players must sit at opposite ends; otherwise the direction of
+        # attack is a guess, and a wrong one would invert every opinion of the half.
+        oriented[start:stop] = abs(away - home) >= MIN_MARGIN_M
+    return oriented
+
+
 def build(table, report=None, model=None):
     """(p_dead, p_home, weight) over every video frame; fills `report` (a dict) if given.
 
@@ -54,12 +64,7 @@ def build(table, report=None, model=None):
             len(model["coef"]), len(names)))
     p_dead, p_home, weight = evidence.empty(table.n_frames)
     halves = shape_features.deepest_medians(table)
-    oriented = np.zeros(table.n_frames, dtype=bool)
-    for start, stop, home, away in halves:
-        # The two teams' deepest players must sit at opposite ends; otherwise the direction of
-        # attack is a guess, and a wrong one would invert every opinion of the half.
-        oriented[start:stop] = abs(away - home) >= MIN_MARGIN_M
-    hidden = table.graded & ~table.ball_visible & ok & oriented
+    hidden = table.graded & ~table.ball_visible & ok & oriented_frames(table, halves)
     if hidden.any():
         p = predict(model, feats[hidden].astype(np.float64))
         p_home[hidden] = np.clip(p, P_MIN, P_MAX)
