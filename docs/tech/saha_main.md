@@ -204,9 +204,10 @@ public window has too few possessions to say more.
 - **Dead ball where the ball is missing.** On DFL, 21% of live hidden-ball frames are called
   dead, against 4.5% where the ball is tracked.
 - **Missing players.** At our tracking level, the shape model (trained with players removed too)
-  still loses about half a point of accuracy, and the on-ball model about one point; both lose
-  more if our tracking misses more players, or players nearer the ball, than we simulated. The direction of attack it needs is found per half; a half without a clear margin
-  gets no opinion.
+  still loses about half a point of accuracy, and the on-ball model about one point. Both lose
+  more if our tracking misses more players, or players nearer the ball, than we simulated.
+  Both need the direction of attack, which is found per half; a half without a clear margin
+  gets no opinion from either.
 - **No abstention.** We never answer X inside a possession, although an X there would cost
   nothing.
 - **With more time, we would:**
