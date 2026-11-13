@@ -59,14 +59,16 @@ tracking ──► frame table ──► evidence builders ───────
 **Where the score is lost.** We measured it on the external matches by giving the system the
 truth for one part at a time, and built a model for the largest gap each time.
 
-| that part perfect | before the shape model | before the on-ball model |
-|---|---|---|
-| nothing | 0.39 | 0.49 |
-| the dead ball | 0.45 | 0.57 |
-| the team where the ball is missing | **0.63** | 0.62 |
-| the team where the ball is tracked | 0.66 | **0.74** |
+| that part perfect | before the shape model | before the on-ball model | the submitted version |
+|---|---|---|---|
+| nothing | 0.39 | 0.49 | 0.53 |
+| the dead ball | 0.45 | 0.57 | 0.61 |
+| the team where the ball is missing | **0.63** | 0.62 | 0.66 |
+| the team where the ball is tracked | 0.66 | **0.74** | 0.74 |
 
-spellF1 on DFL's raw labels; the first column is seed 0, the second 3 seeds.
+spellF1 on DFL's raw labels; the first column is seed 0, the others 3 seeds. In the submitted
+version the team where the ball is tracked is still the largest loss: the on-ball model is
+right on 91% of those frames, and the errors that remain split possessions.
 
 ## The possession rules we implemented
 
