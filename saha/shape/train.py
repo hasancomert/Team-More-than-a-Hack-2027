@@ -14,6 +14,11 @@ cache/external/dfl/ on first use. Nothing of our match is read, fitted or looked
 - **Model:** logistic regression on the difference between the two teams' features (home minus
   away), with every example also added with the teams swapped and no intercept. So the model
   cannot learn a home or an away side: swapping the teams turns p into 1 - p.
+- **Missing players:** DFL tracks all 22 players on every frame; our tracking about 20.5. So
+  every match is also added once with players removed in runs (mean DROP_MEAN_S missing, share
+  DROP_SHARE, seeded per match). Rule fixed before the run, in
+  experiments/20261113_ws1_shape-model.md: held out at our level, the accuracy rose from 0.856 to
+  0.876 and fell by 0.002 with every player present.
 - **Fitting:** features standardised, every STEP-th alive frame, scikit-learn's lbfgs, C = 1.
   The fit is deterministic. The committed model.json is the artifact the pipeline reads.
 """
@@ -35,7 +40,36 @@ MATCHES = ("J03WMX", "J03WN1", "J03WOH", "J03WOY", "J03WPY", "J03WQQ", "J03WR9")
 CONTROLLED_S = 2.0
 STEP = 5
 C = 1.0
+DROP_SHARE = 0.10           # share of player-frames removed in the second copy of each match
+DROP_MEAN_S = 5.0           # mean length of a removed run, seconds
+DROP_SEED = 101
 MODEL_PATH = paths.REPO_ROOT / "saha" / "shape" / "model.json"
+
+
+def drop_players(table, share, rng):
+    """A copy of `table` with each slot missing in runs: mean DROP_MEAN_S long, `share` of the
+    player-frames overall (alternating exponential runs, starting state drawn per slot)."""
+    if share <= 0:
+        return table
+    xy = table.players_xy.copy()
+    speed = table.players_speed.copy()
+    n, slots = xy.shape[:2]
+    mean_off = DROP_MEAN_S * FPS
+    mean_on = mean_off * (1.0 - share) / share
+    for slot in range(slots):
+        t, missing = 0, rng.random() < share
+        while t < n:
+            length = int(rng.exponential(mean_off if missing else mean_on)) + 1
+            if missing:
+                xy[t:t + length, slot] = np.nan
+                speed[t:t + length, slot] = np.nan
+            t += length
+            missing = not missing
+    return replace(table, players_xy=xy, players_speed=speed)
+
+
+def match_seed(match_id):
+    return DROP_SEED + sum(map(ord, match_id))
 
 
 def controlled(labels, seconds=CONTROLLED_S):
@@ -59,12 +93,23 @@ def controlled(labels, seconds=CONTROLLED_S):
 
 
 def match_data(match_id):
-    """(features (N, 2, K), ok, labels (controlled), names) of one DFL match."""
+    """(features (N, 2, K), ok, labels (controlled), names, features and ok with players
+    removed) of one DFL match."""
     from saha.external import degrade, dfl
     match = dfl.prepare(match_id)
     table, labels = degrade.degrade(match, replace(degrade.Degradation(), seed=0))
     feats, ok, names = shape_features.pair_features(table)
-    return feats, ok, controlled(labels), names
+    dropped = drop_players(table, DROP_SHARE, np.random.default_rng(match_seed(match_id)))
+    feats_drop, ok_drop, _ = shape_features.pair_features(dropped)
+    return feats, ok, controlled(labels), names, feats_drop, ok_drop
+
+
+def rows_of(data):
+    """Training rows of one match: the match as delivered, and its copy with players removed."""
+    feats, ok, labels, _, feats_drop, ok_drop = data
+    first = training_rows(feats, ok, labels)
+    second = training_rows(feats_drop, ok_drop, labels)
+    return np.concatenate([first[0], second[0]]), np.concatenate([first[1], second[1]])
 
 
 def training_rows(feats, ok, labels):
@@ -102,16 +147,18 @@ def main(argv=None):
     names = data[MATCHES[0]][3]
     if args.lomo:
         for held in MATCHES:
-            rows = [training_rows(*data[m][:3]) for m in MATCHES if m != held]
+            rows = [rows_of(data[m]) for m in MATCHES if m != held]
             model = fit(np.concatenate([r[0] for r in rows]), np.concatenate([r[1] for r in rows]))
-            feats, ok, labels, _ = data[held]
-            alive = ok & ((labels == H) | (labels == A))
-            p = predict(model, feats[alive])
-            right = (p > 0.5) == (labels[alive] == H)
-            print("held out {}: alive frames {}, accuracy {:.3f}".format(held, int(alive.sum()),
-                                                                         right.mean()))
+            feats, ok, labels, _, feats_drop, ok_drop = data[held]
+            out = []
+            for name, f, o in (("as delivered", feats, ok), ("players removed", feats_drop,
+                                                             ok_drop)):
+                alive = o & ((labels == H) | (labels == A))
+                p = predict(model, f[alive])
+                out.append("{} {:.3f}".format(name, ((p > 0.5) == (labels[alive] == H)).mean()))
+            print("held out {}: accuracy on alive frames, {}".format(held, ", ".join(out)))
         return 0
-    rows = [training_rows(*data[m][:3]) for m in MATCHES]
+    rows = [rows_of(data[m]) for m in MATCHES]
     diff = np.concatenate([r[0] for r in rows])
     y = np.concatenate([r[1] for r in rows])
     model = fit(diff, y)
@@ -126,7 +173,10 @@ def main(argv=None):
                     "matches " + ", ".join(MATCHES),
             "licence": "CC BY 4.0",
             "frames": int(len(y)), "step": STEP, "C": C, "solver": "lbfgs",
-            "seed": "none needed: the fit is deterministic",
+            "missing_players": {"share": DROP_SHARE, "mean_s": DROP_MEAN_S,
+                                "seed": "{} + the sum of the match id's characters".format(
+                                    DROP_SEED)},
+            "seed": "the missing-player copies are seeded; the fit itself is deterministic",
             "libraries": {"python": platform.python_version(), "numpy": np.__version__,
                           "scikit-learn": sklearn.__version__},
         },

@@ -84,6 +84,10 @@ WS4.
   example also added with the teams swapped. So it cannot learn a home or away side: swapping the
   teams turns p into 1 − p.
     - It is trained on all seven DFL matches, on alive frames, every 5th frame.
+    - Each match is also added once with players removed in runs (10% of player-frames, 5 s
+      runs on average). DFL tracks all 22 players; our tracking about 20.5. Held out at our
+      level, this raised the accuracy where the ball is hidden from 0.856 to 0.876, and cost
+      0.002 with every player present.
     - The labels are DFL's possession, with every possession under 2 s between two of the other
       team merged into them.
     - The 24 coefficients are in `saha/shape/model.json`.
@@ -155,7 +159,8 @@ python -m saha.pipeline --fresh --data <path>
   on WS5's seven DFL matches, with a rule fixed before the runs, and it held on raw and on
   controlled labels (experiments/20261111_ws1_nearest-half-with-v21.md).
 - **The shape model transfers from seven German matches.** It has never seen Barcelona's or
-  Athletic's style. The tracking may also miss players more often than DFL's.
+  Athletic's style. Missing players cost it accuracy: 0.876 at our tracking level, against 0.882
+  with every player present (held out, after training with missing players).
 - **The orientation rule assumes goalkeepers are tracked.** A half without a clear 10 m margin
   gets no opinion from `shape`, rather than a wrong one.
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.

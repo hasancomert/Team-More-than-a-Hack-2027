@@ -97,6 +97,29 @@ the same frames.
 
 The rule holds on both label sets, so the variant is adopted.
 
+**Training with missing players too** (second rule, fixed before its run).
+
+- **The test.** DFL tracks all 22 players; our tracking has about 20.5 per graded frame. WS1
+  removed players in runs (mean 5 s) from each held-out match. The model trained on complete
+  matches lost accuracy where the ball is hidden: 0.884 with every player, 0.845 at 7% of
+  player-frames removed (about our level), 0.801 at 15%.
+- **The rule.** Add each training match once more with 10% of player-frames removed (its own
+  seed), and adopt this if, held out, the accuracy at 7% rises by at least 0.010 while the
+  accuracy with every player falls by no more than 0.005.
+
+The result, held out (mean of 7 matches, alive frames where the ball is hidden):
+
+| players removed | trained on complete matches | trained with missing players too |
+|---|---|---|
+| 0% | 0.884 | 0.882 (−0.002) |
+| 7% | 0.856 | **0.876 (+0.021)** |
+| 15% | 0.818 | **0.864 (+0.045)** |
+
+- **The rule holds,** so `saha/shape/model.json` is trained this way.
+- **Inside the pipeline on complete DFL matches** (leave one match out, 3 seeds), the version
+  adopted here scores 0.4898 on raw labels and 0.5325 on controlled-2s. The frozen version scores
+  0.3976 and 0.4325. The new version is ahead on 21 of 21 runs on both label sets.
+
 **On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
 only:
 
@@ -121,6 +144,6 @@ only:
 
 ## Decision
 
-Adopted under D026: `shape` at scale 2, next to WS4, in `configs/pipeline.toml`. The rule was
-fixed before the remaining runs, and it holds out of sample on all 21 runs. The public 5 minutes
-played no part (CLAUDE.md, rule 2).
+Adopted under D026: `shape` at scale 2, next to WS4, in `configs/pipeline.toml`, trained with
+missing players too. Both rules were fixed before their runs, and both hold out of sample. The
+public 5 minutes played no part (CLAUDE.md, rule 2).

@@ -132,6 +132,26 @@ def test_controlled_labels_merge_short_possessions_only_between_the_other_team()
     assert (out[-10:] == X).all()
 
 
+def test_missing_players_are_seeded_and_close_to_the_share():
+    players, teams = attacking_match()
+    big = np.repeat(players, 20, axis=0)                          # 40,000 frames
+    table = make_table(big[:N], teams, np.ones(N, dtype=bool))
+    long_table = frame_table.FrameTable(
+        frame=np.arange(len(big), dtype=np.int32), atd_present=np.ones(len(big), dtype=bool),
+        half=np.ones(len(big), dtype=np.int8), ball_xy=np.full((len(big), 2), 0.5, np.float32),
+        ball_z=None, ball_speed=None, ball_visible=np.ones(len(big), dtype=bool),
+        players_xy=big.astype(np.float32), players_speed=np.zeros(big.shape[:2], np.float32),
+        slot_team=np.asarray(teams, dtype=np.int8), meta={})
+    first = train.drop_players(long_table, 0.10, np.random.default_rng(train.match_seed("X")))
+    again = train.drop_players(long_table, 0.10, np.random.default_rng(train.match_seed("X")))
+    present = np.isfinite(big).all(axis=-1)
+    gone = present & ~np.isfinite(first.players_xy).all(axis=-1)
+    assert np.array_equal(gone, present & ~np.isfinite(again.players_xy).all(axis=-1))  # seeded
+    assert 0.03 < gone.sum() / present.sum() < 0.20                                   # ~10%
+    assert np.isnan(first.players_speed[gone]).all()
+    assert train.drop_players(table, 0.0, np.random.default_rng(0)) is table
+
+
 def test_the_model_file_is_complete_and_matches_the_features():
     model = json.loads(train.MODEL_PATH.read_text())
     _, _, names = features.pair_features(make_table(*attacking_match(), np.ones(N, dtype=bool)))
