@@ -15,10 +15,16 @@ reasoning, and says which.
 | command | `python -m saha.pipeline --fresh --data <path>` |
 | `submissions/SAHA.csv` SHA256 | `a3348aebc2986463f24e1763cc6ff49f35f8bea7b33268ca92e2fb16d7ea8afe` |
 | reproduced by | Hasan (WS1), Windows, 12 November |
-| reproduced by | TODO: Baki (WS4), second machine |
+| reproduced by | Baki (WS4), Windows, Python 3.11.9, 13 November, at `225cae0` |
 
 PR #20 changed only an experiment record and a document. So `eee3162` (after PR #19) and
 `225cae0` give the same file.
+
+The two machines agree on more than the SHA256:
+
+- **The four evidence files hash the same (first 12 characters):** `nearest` 3964488b5def,
+  `deadball` 5296d534a6dd, `visible` bc8aea32bb54, `occluded` 6dfc61d85e88.
+- **The match-wide statistics are the same** (next section).
 
 ## Configuration (`configs/pipeline.toml` at that commit)
 
@@ -73,7 +79,8 @@ written up in its experiment record.
 
 ## Checks on our match (they chose nothing)
 
-These come from Hasan's run of the frozen version, aggregate output only.
+These come from the frozen version's runs, aggregate output only. They are identical on both
+machines.
 
 - **Possessions:** 383, with a mean of 8.6 s and a median of 4.8 s; 78 are shorter than 2 s.
 - **D rate:** 48.3% of graded frames.
