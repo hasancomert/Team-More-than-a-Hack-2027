@@ -9,7 +9,7 @@ and dropped, the training data, the possession rules, the limitations and the re
 
 ## Summary
 
-We label each frame from six sources of evidence and one decoder. Each source answers one of
+We label each frame from seven sources of evidence and one decoder. Each source answers one of
 two questions on its own frames: is the ball dead, and, if it is alive, which team has it. An
 exact integer combiner adds their log-odds, and a Viterbi pass over H, A and D turns the result
 into few, long possessions.
@@ -19,7 +19,7 @@ into few, long possessions.
   Nothing is fitted on the provided game.
 - **The external benchmark.** We degrade the seven DFL matches to our conditions, with the ball
   hidden on 41% of frames in long stretches. On them, the submitted version scores a mean
-  spellF1 of **0.53** with DFL's own labels and **0.59** with a stricter "controlled possession"
+  spellF1 of **0.55** with DFL's own labels and **0.61** with a stricter "controlled possession"
   reading of them. The nearest-player baseline with our dead ball scores 0.32 on the same
   matches. The official baseline scores 0.2433 on the provided game.
 - **Reproduction.** `python -m saha.pipeline --fresh --data <path>` rebuilds the file byte for
@@ -35,6 +35,7 @@ tracking ──► frame table ──► evidence builders ───────
                               occluded  p_home where the ball is missing     over H/A/D
                               shape     p_home where the ball is missing
                               onball    p_home where the ball is tracked
+                              hiddendead p_dead where WS2 calls dead and the ball is missing
 ```
 
 | source | owner | what it says | how it is set |
@@ -45,6 +46,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
 | `shape` | WS1 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
 | `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
+| `hiddendead` | WS1 | a second opinion on WS2's dead calls where the ball is missing, from the players' movement and the edges of the gap; it replaces WS2's call there and can only soften it | gradient boosting trained on DFL (D028) |
 
 **Why this design.**
 
@@ -59,16 +61,18 @@ tracking ──► frame table ──► evidence builders ───────
 **Where the score is lost.** We measured it on the external matches by giving the system the
 truth for one part at a time, and built a model for the largest gap each time.
 
-| that part perfect | before the shape model | before the on-ball model | the submitted version |
+| that part perfect | before the shape model | before the on-ball model | before the dead-ball second opinion |
 |---|---|---|---|
 | nothing | 0.39 | 0.49 | 0.53 |
 | the dead ball | 0.45 | 0.57 | 0.61 |
 | the team where the ball is missing | **0.63** | 0.62 | 0.66 |
 | the team where the ball is tracked | 0.66 | **0.74** | 0.74 |
 
-spellF1 on DFL's raw labels; the first column is seed 0, the others 3 seeds. In the submitted
-version the team where the ball is tracked is still the largest loss: the on-ball model is
-right on 91% of those frames, and the errors that remain split possessions.
+spellF1 on DFL's raw labels; the first column is seed 0, the others 3 seeds. After the on-ball
+model, two more models for the team where the ball is missing (a learned bridge, longer
+windows) gained too little to pass their rules. Most of the dead-ball loss came from WS2's
+false dead calls where the ball is missing (21.7% of the live frames there); correcting only
+those, perfectly, would have given 0.57. The second opinion on them was adopted (D028).
 
 ## The possession rules we implemented
 
@@ -91,6 +95,11 @@ right on 91% of those frames, and the errors that remain split possessions.
 
   Each half starts dead until its kick-off, which is found where the formation breaks inside the
   Smart Tagging kick-off window. A dead ball always splits two possessions.
+- **A second opinion where the ball is missing (WS1).** Where WS2 calls the ball dead while it is
+  missing, inside the played part of a half, a model trained on DFL weighs instead whether play
+  goes on: whether the players keep running, how long the gap and the dead spell are, and where
+  and how fast the ball was at the edges of the gap. It can turn WS2's call into live play, never
+  the reverse, and every frame before a kick-off stays as WS2 decided.
 - **The missing ball (WS4 and WS1).** Inside a gap in the ball's tracking:
     - WS4's bridge carries each side's team inward, and fades in long gaps.
     - Smart Tagging phases add weak evidence, with a side fixed by their official definitions:
@@ -110,7 +119,7 @@ right on 91% of those frames, and the errors that remain split possessions.
 | Smart Tagging | used: kick-off windows (WS2); phase sides, fixed from their definitions (WS4) |
 | homography, broadcast feed | not used: the tracking is already in pitch coordinates |
 | tactical video and audio | **dropped**: WS2's whistle detector works, but it stays off (D025); its benefit cannot be measured on external data, and it needs the 5 GB video |
-| DFL/IDSSE open data | trains the shape and on-ball models; benchmark for every package (WS5's harness) |
+| DFL/IDSSE open data | trains the shape, on-ball and dead-ball second-opinion models; benchmark for every package (WS5's harness) |
 | SkillCorner open data | trains WS2's dead-ball classifier and sets its decoder |
 | TU Dortmund whistle recordings | set the whistle threshold; dropped with the whistle |
 
@@ -125,6 +134,10 @@ right on 91% of those frames, and the errors that remain split possessions.
   one stayed.
 - **A logistic on-ball model.** Held out, it got the team right on 0.887 of the frames with the
   ball, against 0.908 for gradient boosting, which was kept.
+- **Two more models for the team where the ball is missing.** A learned bridge (the formation
+  plus the edges of the gap) and the shape model with 10 s and 30 s windows gained +0.003 and
+  −0.002 on DFL and failed their rules: the formation alone tells the team on about 88% of those
+  frames, and the rest needs the ball.
 
 ## Missing and noisy tracking
 
@@ -151,7 +164,7 @@ None of it comes from the provided game.
 
 | dataset | source and licence | labels, and who made them | amount | used for |
 |---|---|---|---|---|
-| DFL/IDSSE open data | Bassek, Weber, Rein and Memmert (2025), *Scientific Data*; CC BY 4.0 | DFL's official match data (Sportec Solutions): ball possession and ball status on every frame | 7 matches, Bundesliga and 2. Bundesliga 2022/23, 25 fps | training the shape and on-ball models (110,571 frames each); benchmark for every package; WS2's pace constants (checked) |
+| DFL/IDSSE open data | Bassek, Weber, Rein and Memmert (2025), *Scientific Data*; CC BY 4.0 | DFL's official match data (Sportec Solutions): ball possession and ball status on every frame | 7 matches, Bundesliga and 2. Bundesliga 2022/23, 25 fps | training the shape and on-ball models (110,571 frames each) and the dead-ball second opinion (frames where WS2 calls dead with the ball hidden, at three degradation seeds); benchmark for every package; WS2's pace constants (checked) |
 | SkillCorner open data | github.com/SkillCorner/opendata; MIT, © SkillCorner | SkillCorner's phases of play | 20 A-League 2024/25 matches, 10 fps | training WS2's dead-ball classifier; its decoder settings |
 | TU Dortmund Whistle Detection Dataset | Kleingarn and Brämer (2024), TUDOdata; CC BY-SA 4.0 | its authors: whistle blasts in RoboCup recordings | test split, 249 blasts | one number, the whistle threshold; not used by the submission (whistle off) |
 
@@ -172,14 +185,16 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
 | + WS3 v2.1 and `nearest` at 0.5 | 0.387 | 0.420 |
 | + WS4 v2: the version frozen on 12 November | 0.394 | 0.427 |
 | + shape | 0.491 | 0.531 |
-| **+ on-ball: the submitted version** | **0.531** | **0.587** |
+| + on-ball | 0.531 | 0.587 |
+| **+ dead-ball second opinion: the submitted version** | **0.548** | **0.609** |
 
 - The rows are seed 0.
-- **Both WS1 models were evaluated leaving one match out.** They were fitted on the six
+- **The three WS1 models were evaluated leaving one match out.** They were fitted on the six
   other matches every time.
 - **Over three degradation seeds:** the frozen version scores 0.398 raw and 0.433 controlled;
   with the shape model, 0.490 and 0.533, ahead on 21 of 21 runs; with the on-ball model too,
-  0.531 and 0.587, ahead of the shape version on 21 of 21 runs.
+  0.531 and 0.587, ahead of the shape version on 21 of 21 runs; with the dead-ball second
+  opinion too, 0.549 and 0.609, ahead of the on-ball version on 21 of 21 runs.
 - **Every step was chosen with a rule fixed before its runs,** and is written up in an
   experiment record.
 
@@ -203,8 +218,10 @@ public window has too few possessions to say more.
   label reading is right (35 on raw labels, 45–60 on controlled ones).
 - **Unvalidated Smart Tagging evidence.** No external dataset has Smart Tagging, so WS4's tag
   evidence is weak by design and was never validated.
-- **Dead ball where the ball is missing.** On DFL, 21% of live hidden-ball frames are called
-  dead, against 4.5% where the ball is tracked.
+- **Dead ball where the ball is missing.** On DFL, WS2 alone calls 21.6% of the live frames dead
+  where the ball is missing; with the second opinion, 5.6% (frame by frame, before decoding).
+  The test hides the ball at random. In our match it may vanish more often when it goes out of
+  play, where the second opinion may be too ready to call play live.
 - **Missing players.** At our tracking level, the shape model (trained with players removed too)
   still loses about half a point of accuracy, and the on-ball model about one point. Both lose
   more if our tracking misses more players, or players nearer the ball, than we simulated.
@@ -230,10 +247,16 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
   their own machines.
 - **The combiner** works in integers and every evidence file is quantised to 1e-4, so the file
   does not depend on the machine.
+- **The models' arithmetic** (matrix products, `exp`, tree thresholds) can differ in the last
+  bit between processors. Such a difference reaches the file only if a value falls on a 1e-4
+  rounding boundary, and the second opinion's inputs are rounded to float32 first. Two
+  machines reproducing the same SHA256 is the check.
 - **The shape model's coefficients** are in `saha/shape/model.json`. `python -m saha.shape.train`
   rebuilds them from the DFL matches.
-- **The on-ball model** is a pickle with its manifest in `saha/onball/models/`, trained on one
-  thread with a fixed seed. `python -m saha.onball.train` rebuilds it from the DFL matches.
+- **The on-ball and second-opinion models** are pickles with their manifests in
+  `saha/onball/models/` and `saha/hiddendead/models/`, trained on one thread with a fixed seed.
+  `python -m saha.onball.train` and `python -m saha.hiddendead.train` rebuild them from the DFL
+  matches.
 
 ## How we kept to the rules
 
@@ -247,8 +270,9 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
   published half boundaries.
 - **The public 5 minutes checked the pipeline and chose nothing.** The packages' values come from
   football reasoning or from comparisons on external data. WS1's choices after 11 November
-  (`nearest`'s scale, the shape model and its training, the on-ball model) were made with a rule
-  written down before their runs.
+  (`nearest`'s scale, the shape model and its training, the on-ball model, the dead-ball second
+  opinion) were made with a rule written down before their runs; so were the two models that
+  were tested and rejected.
 - **The match data never left team members' machines.** Not in git, cloud storage or chat;
   a git guard enforces it, and `main`'s history passes it.
 - **AI assistants (Claude Code)** wrote code and saw aggregate output only: counts, percentages

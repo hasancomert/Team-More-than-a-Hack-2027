@@ -247,3 +247,26 @@ come here (CLAUDE.md).
     - **Deadline.** As in D026: merged and reproduced on two machines by 14 November, 18:00
       Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
       whichever ships.
+- **D028 (team leader, 13 November) A second opinion on WS2's dead calls where the ball is
+  missing.** It narrows D022.
+    - **Why.** With the on-ball model in, WS2 calls 21.7% of the live frames dead where the ball is
+      missing, against 4.6% where it is tracked (WS5's DFL matches, 7 matches × 3 seeds). Each
+      false stoppage splits a possession. Correcting only those calls, perfectly, would raise
+      spellF1 from 0.531 to 0.569 on raw labels and from 0.587 to 0.632 on controlled-2s.
+    - **What.** `saha/hiddendead`: a gradient-boosting model of the players' movement and the
+      edges of the gap, trained on WS5's seven DFL matches only (CC BY 4.0) to tell DFL's dead
+      ball from live play on the frames where WS2 calls dead with the ball missing. Nothing of our
+      match is fitted.
+    - **Where it counts.** Only on graded frames where the ball is missing, WS2 calls the ball
+      dead, and the frame lies between WS2's first and last alive frame of its half. There the
+      pipeline drops WS2's `p_dead` (`overrides = "deadball"` in `configs/pipeline.toml`) and the
+      decoder weighs the model's P(dead) instead, clipped to [0.1, 0.9], at scale 2. It never adds
+      a dead call where WS2 says alive, and every frame before a half's kick-off stays as WS2
+      decided. Everywhere else WS2's decision stays final (D022).
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_hiddendead.md`).
+    - **WS2's code is unchanged.** Alparslan (WS2) is told of this decision.
+    - **The model file.** A pickle under `saha/hiddendead/models/`, with its manifest (D020),
+      trained on one thread with a fixed seed; `python -m saha.hiddendead.train` rebuilds it.
+    - **Deadline.** As in D026: merged and reproduced on two machines by 14 November, 18:00 Turkey
+      time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records whichever
+      ships.

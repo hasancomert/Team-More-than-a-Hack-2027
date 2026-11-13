@@ -1,9 +1,9 @@
 # WS1: data layer, evidence interface, combiner and reproduction
 
 Owner: Hasan (team leader). Code: `saha/common/`, `saha/combine/`, `saha/nearest/`,
-`saha/shape/`, `saha/onball/`, `saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of
-8 November, with the shape and on-ball models added on 13 November; the final numbers come
-from FINAL_CHOICE.md.
+`saha/shape/`, `saha/onball/`, `saha/hiddendead/`, `saha/pipeline.py`, `saha/tools/`,
+`configs/`. Draft of 8 November, with the shape, on-ball and dead-ball second-opinion models
+added on 13 November; the final numbers come from FINAL_CHOICE.md.
 
 ## Approach
 
@@ -129,6 +129,30 @@ tracked ball, next to WS3 and `nearest`.
   scale 2. The model is silent on the few frames at each edge of a tracking gap, where the ball's
   speed is undefined; WS3 and `nearest` still cover them.
 
+**`hiddendead`** (D028) is a second opinion on WS2's dead calls where the ball is missing.
+
+- **Why.** With the on-ball model in, WS2 calls 21.7% of the live frames dead where the ball is
+  missing, against 4.6% where it is tracked (DFL, 7 matches × 3 seeds). Each false stoppage
+  splits a possession; correcting only those calls, perfectly, would raise spellF1 from 0.531
+  to 0.569 (raw).
+- **Where.** Graded frames where the ball is missing, WS2 calls the ball dead, and the frame lies
+  between WS2's first and last alive frame of its half; every frame before a kick-off stays as
+  WS2 decided. There the pipeline drops WS2's `p_dead` (`overrides = "deadball"`,
+  `saha.pipeline.apply_overrides`) and the decoder weighs this source's P(dead), clipped to
+  [0.1, 0.9], at scale 2. It can soften WS2's dead calls, never add one.
+- **Inputs** (27, none of them depends on which team is which): where the frame is in its gap
+  and in WS2's dead spell; the ball's speed, position and nearest player at the edges of the
+  gap; the players' mean speed, the slower team's speed, forward speed, the teams' length, width
+  and advancement, over 1 s and 4 s, and the change of the mean speed. They are rounded to
+  float32, as in training.
+- **Model.** The on-ball model's gradient boosting, trained by `python -m saha.hiddendead.train`
+  on the seven DFL matches degraded at seeds 100–102 (never the evaluation seeds), on the frames
+  above, with DFL's ball status as the target. One thread, fixed seed; the pickle and its
+  manifest are in `saha/hiddendead/models/`.
+- **Held out** (7 matches × 3 seeds): spellF1 0.531 → 0.549 raw and 0.587 → 0.609
+  controlled-2s, ahead on 21 of 21 runs on both. Of the live frames where the ball is missing,
+  WS2 alone calls 21.6% dead; with the second opinion, 5.6%.
+
 ## Assets
 
 | asset | use |
@@ -139,7 +163,7 @@ tracked ball, next to WS3 and `nearest`.
 
 ## Training data
 
-WS1 trains two models, `shape` and `onball`, on external data only.
+WS1 trains three models, `shape`, `onball` and `hiddendead`, on external data only.
 
 - **The shape model.** It is trained on WS5's seven DFL/IDSSE matches (Bassek, Weber, Rein and
   Memmert, 2025; CC BY 4.0), with DFL's own possession labels, made stricter as described above.
@@ -148,6 +172,9 @@ WS1 trains two models, `shape` and `onball`, on external data only.
 - **The on-ball model.** The same matches and labels. `python -m saha.onball.train` rebuilds
   `saha/onball/models/onball.pkl` and its manifest, which records the data, the licence, the
   library versions and the file's SHA256.
+- **The second opinion on dead calls.** The same matches, degraded by WS5's harness at seeds
+  100–102, with DFL's ball status as the target. `python -m saha.hiddendead.train` rebuilds
+  `saha/hiddendead/models/hiddendead.pkl` and its manifest.
 - **Prior.** The prior comes from the model's definition.
 - **Costs.** The switching costs are reasoned placeholders (35 nats). They are to be tuned on
   WS5's external matches once those mean what ours mean (D017).
@@ -206,4 +233,7 @@ python -m saha.pipeline --fresh --data <path>
   before the runs (experiments/20261113_ws1_onball-model.md). It has seen only DFL's tracking,
   where the ball is tracked on every frame; ours may be noisier.
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.
-- **WS2's decision is final.** It overrides every other `p_dead` (D022).
+- **WS2's decision is final, with one exception.** It overrides every other `p_dead` (D022),
+  except where `hiddendead` gives a second opinion on a dead call with the ball missing
+  (D028). That model has seen DFL's tracking, where the ball goes missing at random; in our
+  match a missing ball may mean a stoppage more often.

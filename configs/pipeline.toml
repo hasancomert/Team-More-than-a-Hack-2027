@@ -31,6 +31,13 @@ module = "saha.deadball.build"
 scale = 1.0
 
 [[evidence]]
+name = "hiddendead"     # WS1: a second opinion on WS2's dead calls where the ball is missing
+module = "saha.hiddendead.build"   # after deadball: it reads WS2's decision
+scale = 2.0             # as the other WS1 models; rule fixed before the runs:
+                        # experiments/20261113_ws1_hiddendead.md
+overrides = "deadball"  # WS2's p_dead is dropped on this source's frames (DECISIONS D028)
+
+[[evidence]]
 name = "visible"        # WS3
 module = "saha.visible.build"
 scale = 1.0
