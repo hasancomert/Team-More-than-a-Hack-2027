@@ -177,7 +177,7 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
   other matches every time.
 - **Over three degradation seeds:** the frozen version scores 0.398 raw and 0.433 controlled;
   with the shape model, 0.490 and 0.533, ahead on 21 of 21 runs; with the on-ball model too,
-  0.530 and 0.586, ahead of the shape version on 21 of 21 runs.
+  0.531 and 0.587, ahead of the shape version on 21 of 21 runs.
 - **Every step was chosen with a rule fixed before its runs,** and is written up in an
   experiment record.
 

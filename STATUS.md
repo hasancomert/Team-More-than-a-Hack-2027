@@ -34,7 +34,7 @@ merged and reproduced in time.
 |---|---|---|---|
 | the frozen version `225cae0` | | | 0.398 / 0.433 |
 | + `saha/shape`: the team from the two teams' shape | D026 | graded frames without the ball | 0.490 / 0.533 |
-| + `saha/onball`: the team from the ball and the players around it | D027 | graded frames with the ball | 0.530 / 0.586 |
+| + `saha/onball`: the team from the ball and the players around it | D027 | graded frames with the ball | 0.531 / 0.587 |
 
 Both are trained on WS5's seven DFL matches only (CC BY 4.0). Records:
 `experiments/20261113_ws1_shape-model.md`, `experiments/20261113_ws1_onball-model.md`.
