@@ -177,11 +177,22 @@ def test_techdoc_puts_the_package_sections_in_order_as_appendices(tmp_path):
     (tmp_path / "ws1_pipeline.md").write_text("# WS1: pipeline\n\n## Approach\n\nbody\n")
     (tmp_path / "README.md").write_text("# how to assemble\n")
     (tmp_path / "ws9_other.md").write_text("# not a package\n")
-    text = techdoc.assemble(tmp_path)
+    text = techdoc.assemble(tmp_path, full=True)
     assert text.startswith("# SAHA\n")
     assert text.index("## Appendix A: WS1: pipeline") < text.index("## Appendix C: WS3: ball")
     assert text.count("### Approach") == 2 and "\n# a shell comment\n" in text
     assert "how to assemble" not in text and "not a package" not in text
+
+
+def test_techdoc_by_default_appends_the_short_appendices_only(tmp_path):
+    (tmp_path / "saha_main.md").write_text(
+        "# SAHA\n\nMain text.\n\n## Appendices\n\nEach package's section, as its owner wrote it.\n")
+    (tmp_path / "ws1_pipeline.md").write_text("# WS1: pipeline\n\n## Approach\n\nLong text.\n")
+    (tmp_path / "appendix_summaries.md").write_text(
+        "## Appendices\n\nIn brief.\n\n### Appendix A: WS1\n\nShort.\n")
+    text = techdoc.assemble(tmp_path)
+    assert text.startswith("# SAHA\n\nMain text.\n") and text.count("## Appendices") == 1
+    assert "Short." in text and "Long text." not in text and "as its owner wrote" not in text
 
 
 def test_techdoc_assembles_the_repository_sections(tmp_path):
