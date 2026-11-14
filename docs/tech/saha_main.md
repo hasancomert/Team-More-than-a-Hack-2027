@@ -255,11 +255,12 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
   rounding boundary, and the second opinion's inputs are rounded to float32 first. Two
   machines reproducing the same SHA256 is the check.
 - **The shape model's coefficients** are in `saha/shape/model.json`. `python -m saha.shape.train`
-  rebuilds them from the DFL matches.
+  rebuilds them from the DFL matches: byte for byte with four threads, as they were trained, and
+  within 0.022 in P(home) with another thread count.
 - **The on-ball and second-opinion models** are pickles with their manifests in
   `saha/onball/models/` and `saha/hiddendead/models/`, trained on one thread with a fixed seed.
   `python -m saha.onball.train` and `python -m saha.hiddendead.train` rebuild them from the DFL
-  matches.
+  matches byte for byte.
 
 ## How we kept to the rules
 
