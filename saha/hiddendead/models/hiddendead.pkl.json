@@ -1,0 +1,26 @@
+{
+  "model": "hiddendead.pkl",
+  "training_script": "saha/hiddendead/train.py",
+  "command": "python -m saha.hiddendead.train",
+  "data": "DFL/IDSSE open data (Bassek, Weber, Rein and Memmert, 2025, Scientific Data), matches J03WMX, J03WN1, J03WOH, J03WOY, J03WPY, J03WQQ, J03WR9, each degraded by saha.external.degrade at seeds 100, 101, 102; frames: ball missing and called dead by WS2 (saha.deadball); target: DFL's ball status",
+  "licence": "CC BY 4.0, (c) DFL / Sportec Solutions",
+  "seed": 0,
+  "params": {
+    "max_iter": 300,
+    "learning_rate": 0.05,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 200,
+    "l2_regularization": 1.0,
+    "early_stopping": false,
+    "random_state": 0
+  },
+  "libraries": {
+    "python": "3.11.17",
+    "numpy": "2.3.5",
+    "scikit-learn": "1.9.1",
+    "threads": 1
+  },
+  "frames": 219560,
+  "features": 27,
+  "sha256": "07d07b8fff5f9cbe2f246f2a3f9a6c03cd5146ac8639fd02ee494997a4518100"
+}

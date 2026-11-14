@@ -23,6 +23,8 @@ import tomllib
 from importlib import metadata
 from pathlib import Path
 
+import numpy as np
+
 from saha.combine.decode import CombineParams, decode
 from saha.common import evidence, frame_table, paths, submission
 
@@ -31,6 +33,31 @@ TEAM = "SAHA"
 PINNED = ("numpy", "pandas", "pyarrow", "scipy", "kloppy")
 # Evidence pairs that must not both give p_home on one frame (TEAM.md, boundaries).
 BOUNDARY_PAIRS = (("visible", "occluded"),)
+
+
+def apply_overrides(sources, entries):
+    """([(Evidence, scale)], {name: frames}): where an entry says `overrides = "<name>"`, its
+    source's `p_dead` replaces <name>'s on the frames where it has one (DECISIONS D028). The
+    target's `p_home` and weights are kept, and the inputs are not changed."""
+    out = list(sources)
+    position = {source.name: i for i, (source, _) in enumerate(out)}
+    counts = {}
+    for entry in entries:
+        target = entry.get("overrides")
+        if not target:
+            continue
+        if target not in position or entry["name"] not in position:
+            raise SystemExit("{} overrides {}, which is not in the config".format(
+                entry["name"], target))
+        source = out[position[entry["name"]]][0]
+        frames = np.isfinite(source.p_dead) & (source.weight > 0)
+        old, scale = out[position[target]]
+        p_dead = old.p_dead.copy()
+        p_dead[frames] = np.nan
+        out[position[target]] = (evidence.Evidence(old.name, p_dead, old.p_home, old.weight,
+                                                   old.meta), scale)
+        counts[entry["name"]] = int(frames.sum())
+    return out, counts
 
 
 def load_config(path):
@@ -122,6 +149,10 @@ def main(argv=None):
         loaded = evidence.read_evidence(entry["name"])
         sources.append((loaded, float(entry.get("scale", 1.0))))
         hashes[entry["name"]] = loaded.content_hash()
+    sources, overridden = apply_overrides(sources, entries)
+    for name, count in overridden.items():
+        print("  {} replaces another source's p_dead on {} frames (DECISIONS D028)".format(
+            name, count))
     by_name = {source.name: source for source, _ in sources}
     for first, second in BOUNDARY_PAIRS:
         if first in by_name and second in by_name:

@@ -1,8 +1,9 @@
 # WS1: data layer, evidence interface, combiner and reproduction
 
 Owner: Hasan (team leader). Code: `saha/common/`, `saha/combine/`, `saha/nearest/`,
-`saha/pipeline.py`, `saha/tools/`, `configs/`. Draft of 8 November; the final numbers come from
-FINAL_CHOICE.md.
+`saha/shape/`, `saha/onball/`, `saha/hiddendead/`, `saha/pipeline.py`, `saha/tools/`,
+`configs/`. Draft of 8 November, with the shape, on-ball and dead-ball second-opinion models
+added on 13 November; the final numbers come from FINAL_CHOICE.md.
 
 ## Approach
 
@@ -58,6 +59,100 @@ result is the same on every machine.
 for the nearest player's team where the ball is tracked, and `p_dead` from whether a ball has been
 seen within 2 s. It is the reference and the fallback.
 
+**`shape`** (D026) says who has the ball while it is missing. It reads the two teams' shape and
+motion, never the ball, and writes `p_home` on the graded frames without a tracked ball, next to
+WS4.
+
+- **Why.** On WS5's DFL matches, the true team on the frames without the ball alone would raise
+  the frozen version's spellF1 by 0.24. No other part of the system loses as much. WS4's bridge
+  got the team right on about 65% of those frames.
+- **Orientation.** In each half, take each team's player nearest the low-x goal, with the median
+  over the half.
+    - For the team that defends that goal, this is its goalkeeper or its last defender.
+    - For the other team, it is a forward, who stays further out to be onside.
+    - So the team with the lower median defends the low-x goal and attacks towards high x.
+    - On WS5's DFL matches the two medians are 21–27 m apart. Below 10 m the direction is unclear,
+      and that half gets no opinion.
+- **Features.** For each team, in its own attacking frame:
+    - the centroid, the deep and the advanced players (15th and 85th percentiles), the length and
+      the width;
+    - the share of players in the opponent's half;
+    - the mean velocity towards the opponent's goal and the mean speed.
+
+  Each is smoothed over 1 s and over 4 s, and its change over the next 2 s is added. A player
+  velocity above 12 m/s is a tracking jump and is ignored.
+- **Model.** A logistic regression on home's features minus away's, with no intercept and every
+  example also added with the teams swapped. So it cannot learn a home or away side: swapping the
+  teams turns p into 1 − p.
+    - It is trained on all seven DFL matches, on alive frames, every 5th frame.
+    - Each match is also added once with players removed in runs (10% of player-frames, 5 s
+      runs on average). DFL tracks all 22 players; our tracking about 20.5. Held out at our
+      level, this raised the accuracy where the ball is hidden from 0.856 to 0.876, and cost
+      0.002 with every player present.
+    - The labels are DFL's possession, with every possession under 2 s between two of the other
+      team merged into them.
+    - The 24 coefficients are in `saha/shape/model.json`.
+- **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
+  scale 2.
+
+**`onball`** (D027) says who has the ball while it is tracked. It reads the ball and the players
+around it, with the two teams' shape as context, and writes `p_home` on the graded frames with a
+tracked ball, next to WS3 and `nearest`.
+
+- **Why.** With the shape model in, the true team on the frames with the ball alone would raise
+  spellF1 on WS5's DFL matches from 0.49 to 0.74 (raw labels): the largest loss left. The
+  nearest player is right on 78% of those frames, held out, and WS3 and `nearest` both start
+  from it.
+- **Features** (88), for each team in its own attacking frame (the orientation of `shape`):
+    - the distance from the ball to its nearest and second-nearest player, capped at 30 m;
+    - its players within 5 m and within 10 m of the ball;
+    - the nearest player's speed towards the ball;
+    - the ball's x, and the ball's velocity towards the team's goal.
+
+  Each is averaged over a centred 0.5 s and a centred 2 s window, the second before and the
+  second after; the averages skip frames without the ball. Added to them: the ball's speed,
+  acceleration and position, raw and over 1 s, and `shape`'s 24 features, home minus away.
+- **Model.** scikit-learn's histogram gradient boosting (300 trees of up to 31 leaves, learning
+  rate 0.05, at least 200 frames per leaf). Every example is also added with the teams swapped,
+  and the answer is the mean of the model's answers in both orders, so swapping the teams turns
+  p into 1 − p.
+    - It is trained on all seven DFL matches, on alive frames, every 5th frame, with the same
+      labels as `shape`.
+    - Training runs on one thread with a fixed seed and no early stopping. The pickle and its
+      manifest are in `saha/onball/models/` (D020).
+    - Held out, it gets the team right on 0.908 of the alive frames with the ball (seed 0), where
+      the nearest player gets 0.780.
+    - With 7% of player-frames removed (our level), it keeps 0.897. Training with missing
+      players too would have gained only 0.005 there, below the 0.010 that the rule fixed
+      before the run required, so it is trained on complete matches.
+- **Output.** The probability is clipped to [0.1, 0.9] at weight 1, and the config gives it
+  scale 2. The model is silent on the few frames at each edge of a tracking gap, where the ball's
+  speed is undefined; WS3 and `nearest` still cover them.
+
+**`hiddendead`** (D028) is a second opinion on WS2's dead calls where the ball is missing.
+
+- **Why.** With the on-ball model in, WS2 calls 21.7% of the live frames dead where the ball is
+  missing, against 4.6% where it is tracked (DFL, 7 matches × 3 seeds). Each false stoppage
+  splits a possession; correcting only those calls, perfectly, would raise spellF1 from 0.531
+  to 0.569 (raw).
+- **Where.** Graded frames where the ball is missing, WS2 calls the ball dead, and the frame lies
+  between WS2's first and last alive frame of its half; every frame before a kick-off stays as
+  WS2 decided. There the pipeline drops WS2's `p_dead` (`overrides = "deadball"`,
+  `saha.pipeline.apply_overrides`) and the decoder weighs this source's P(dead), clipped to
+  [0.1, 0.9], at scale 2. It can soften WS2's dead calls, never add one.
+- **Inputs** (27, none of them depends on which team is which): where the frame is in its gap
+  and in WS2's dead spell; the ball's speed, position and nearest player at the edges of the
+  gap; the players' mean speed, the slower team's speed, forward speed, the teams' length, width
+  and advancement, over 1 s and 4 s, and the change of the mean speed. They are rounded to
+  float32, as in training.
+- **Model.** The on-ball model's gradient boosting, trained by `python -m saha.hiddendead.train`
+  on the seven DFL matches degraded at seeds 100–102 (never the evaluation seeds), on the frames
+  above, with DFL's ball status as the target. One thread, fixed seed; the pickle and its
+  manifest are in `saha/hiddendead/models/`.
+- **Held out** (7 matches × 3 seeds): spellF1 0.531 → 0.549 raw and 0.587 → 0.609
+  controlled-2s, ahead on 21 of 21 runs on both. Of the live frames where the ball is missing,
+  WS2 alone calls 21.6% dead; with the second opinion, 5.6%.
+
 ## Assets
 
 | asset | use |
@@ -68,8 +163,18 @@ seen within 2 s. It is the reference and the fallback.
 
 ## Training data
 
-WS1 trains nothing.
+WS1 trains three models, `shape`, `onball` and `hiddendead`, on external data only.
 
+- **The shape model.** It is trained on WS5's seven DFL/IDSSE matches (Bassek, Weber, Rein and
+  Memmert, 2025; CC BY 4.0), with DFL's own possession labels, made stricter as described above.
+  `python -m saha.shape.train` rebuilds `saha/shape/model.json` from them. Nothing of our match is
+  fitted.
+- **The on-ball model.** The same matches and labels. `python -m saha.onball.train` rebuilds
+  `saha/onball/models/onball.pkl` and its manifest, which records the data, the licence, the
+  library versions and the file's SHA256.
+- **The second opinion on dead calls.** The same matches, degraded by WS5's harness at seeds
+  100–102, with DFL's ball status as the target. `python -m saha.hiddendead.train` rebuilds
+  `saha/hiddendead/models/hiddendead.pkl` and its manifest.
 - **Prior.** The prior comes from the model's definition.
 - **Costs.** The switching costs are reasoned placeholders (35 nats). They are to be tuned on
   WS5's external matches once those mean what ours mean (D017).
@@ -99,7 +204,9 @@ python -m saha.pipeline --fresh --data <path>
     - Inputs are read in sorted order.
     - Every seed is fixed.
 - **Checked on two machines.** The SAHA.csv SHA256 matched on two members' machines on 6 and on
-  7 November.
+  7 November, for the frozen version on 12 and 13 November, and for the submitted version
+  (`d276615`, `af770330…`) on Hasan's and Baki's machines on 14 November, with all seven
+  evidence files the same.
 - **CI.** CI runs the tests, the guard and the official evaluation on every pull request.
 
 ## How the team worked with the data
@@ -118,5 +225,17 @@ python -m saha.pipeline --fresh --data <path>
   player. So `nearest` runs at 0.5 next to WS3 v2.1, which writes weight 2. That choice was made
   on WS5's seven DFL matches, with a rule fixed before the runs, and it held on raw and on
   controlled labels (experiments/20261111_ws1_nearest-half-with-v21.md).
+- **The shape model transfers from seven German matches.** It has never seen Barcelona's or
+  Athletic's style. Missing players cost it accuracy: 0.876 at our tracking level, against 0.882
+  with every player present (held out, after training with missing players).
+- **The orientation rule assumes goalkeepers are tracked.** A half without a clear 10 m margin
+  gets no opinion from `shape`, rather than a wrong one.
+- **`onball` reads the same frames as WS3 and `nearest`.** The three are not independent. Its
+  scale was fixed by reasoning, as for WS3 and `shape`, and checked on DFL with a rule fixed
+  before the runs (experiments/20261113_ws1_onball-model.md). It has seen only DFL's tracking,
+  where the ball is tracked on every frame; ours may be noisier.
 - **No abstention.** The decoder never answers X inside a possession, where X would be free.
-- **WS2's decision is final.** It overrides every other `p_dead` (D022).
+- **WS2's decision is final, with one exception.** It overrides every other `p_dead` (D022),
+  except where `hiddendead` gives a second opinion on a dead call with the ball missing
+  (D028). That model has seen DFL's tracking, where the ball goes missing at random; in our
+  match a missing ball may mean a stoppage more often.

@@ -207,3 +207,66 @@ come here (CLAUDE.md).
     - It would also put the byte-identical reproduction at risk across ffmpeg versions.
 
   WS2's detector stays in the code, off by default.
+
+## 2026-11-13
+
+- **D026 (team leader, 13 November) One improvement after the freeze: the shape model.**
+    - **Why.** WS1 measured on WS5's DFL matches where the frozen version loses spellF1. Giving it
+      the true team only where the ball is missing would raise spellF1 by 0.24; that is the
+      largest single loss. WS4's bridge gets the team right on about 65% of those frames.
+    - **What.** `saha/shape`: a logistic model of the two teams' shape and motion. It uses no
+      ball, and it is trained on WS5's seven DFL matches only (CC BY 4.0). Nothing of our match
+      is fitted. WS2's earlier team-shape model, fitted on this match, was dropped under D017;
+      this one is a different model, trained on external labels.
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_shape-model.md`). The model
+      sits on graded frames without the ball at scale 2, and WS4 stays.
+    - **An exception to D011.** `shape` writes `p_home` on the same frames as WS4; the combiner
+      adds the two in log-odds.
+    - **The model file.** It is a 3 KB JSON of coefficients, `saha/shape/model.json`, which records
+      its training script, data and licence. `python -m saha.shape.train` rebuilds it. The guard
+      allows JSON up to 10 KB, and D020's pickle rule does not apply.
+    - **Deadline.** The version must be merged and reproduced on two machines by 14 November,
+      18:00 Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
+      whichever ships.
+- **D027 (team leader, 13 November) A second improvement after the freeze: the on-ball model.**
+    - **Why.** With the shape model in, WS1 measured again on WS5's DFL matches where the version
+      loses spellF1. Giving it the true team only where the ball is tracked would raise spellF1
+      from 0.49 to 0.74 (raw labels, 7 matches × 3 seeds); that is now the largest single loss.
+      On those frames the nearest player alone is right on 78% of alive frames.
+    - **What.** `saha/onball`: a gradient-boosting model of the ball and the players around it,
+      with the two teams' shape as context. It is trained on WS5's seven DFL matches only
+      (CC BY 4.0). Nothing of our match is fitted. Held out, it gets the team right on 91% of
+      alive frames where the ball is tracked.
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_onball-model.md`). The
+      model sits on graded frames where the ball is tracked, at scale 2, and WS3 and `nearest`
+      stay.
+    - **An exception to D011.** `onball` writes `p_home` on the same frames as WS3; the combiner
+      adds the two in log-odds.
+    - **The model file.** A 1.2 MB pickle under `saha/onball/models/`, with its manifest (D020).
+      It is trained on one thread with a fixed seed; `python -m saha.onball.train` rebuilds it.
+    - **Deadline.** As in D026: merged and reproduced on two machines by 14 November, 18:00
+      Turkey time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records
+      whichever ships.
+- **D028 (team leader, 13 November) A second opinion on WS2's dead calls where the ball is
+  missing.** It narrows D022.
+    - **Why.** With the on-ball model in, WS2 calls 21.7% of the live frames dead where the ball is
+      missing, against 4.6% where it is tracked (WS5's DFL matches, 7 matches × 3 seeds). Each
+      false stoppage splits a possession. Correcting only those calls, perfectly, would raise
+      spellF1 from 0.531 to 0.569 on raw labels and from 0.587 to 0.632 on controlled-2s.
+    - **What.** `saha/hiddendead`: a gradient-boosting model of the players' movement and the
+      edges of the gap, trained on WS5's seven DFL matches only (CC BY 4.0) to tell DFL's dead
+      ball from live play on the frames where WS2 calls dead with the ball missing. Nothing of our
+      match is fitted.
+    - **Where it counts.** Only on graded frames where the ball is missing, WS2 calls the ball
+      dead, and the frame lies between WS2's first and last alive frame of its half. There the
+      pipeline drops WS2's `p_dead` (`overrides = "deadball"` in `configs/pipeline.toml`) and the
+      decoder weighs the model's P(dead) instead, clipped to [0.1, 0.9], at scale 2. It never adds
+      a dead call where WS2 says alive, and every frame before a half's kick-off stays as WS2
+      decided. Everywhere else WS2's decision stays final (D022).
+    - **The rule was fixed before the runs** (`experiments/20261113_ws1_hiddendead.md`).
+    - **WS2's code is unchanged.** Alparslan (WS2) is told of this decision.
+    - **The model file.** A pickle under `saha/hiddendead/models/`, with its manifest (D020),
+      trained on one thread with a fixed seed; `python -m saha.hiddendead.train` rebuilds it.
+    - **Deadline.** As in D026: merged and reproduced on two machines by 14 November, 18:00 Turkey
+      time. Otherwise the frozen version (`225cae0`) ships. FINAL_CHOICE.md records whichever
+      ships.
