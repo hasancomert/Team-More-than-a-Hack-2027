@@ -3,9 +3,11 @@
 Team SAHA, More than a Hack 2027 (FC Barcelona – Athletic Club). Code:
 https://github.com/hasancomert/Team-More-than-a-Hack-2027. Submission: `SAHA.csv`.
 
-<!-- Assembled into SAHA.md by `python -m saha.tools.techdoc`: this file, then each package's own
-section (docs/tech/ws*_*.md) as an appendix. SUBMISSION.md asks for: the approach, the assets used
-and dropped, the training data, the possession rules, the limitations and the reproduction. -->
+<!-- Assembled into SAHA.md by `python -m saha.tools.techdoc`: this file, then one short appendix
+per package (docs/tech/appendix_summaries.md), each linking to its owner's full section
+(docs/tech/ws*_*.md); `--full` appends the full sections instead. SUBMISSION.md asks for: the
+approach, the assets used and dropped, the training data, the possession rules, the limitations
+and the reproduction. -->
 
 ## Summary
 
