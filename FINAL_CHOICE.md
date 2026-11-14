@@ -13,14 +13,13 @@ reasoning, and says which.
 
 | | |
 |---|---|
-| commit | `d276615` on PR #21 (`main` once PR #21 is merged) |
+| commit | `d276615`, in `main` since PR #21 (merge `860ae46`) |
 | command | `python -m saha.pipeline --fresh --data <path>` |
 | `submissions/SAHA.csv` SHA256 | `af770330dbc3e5c414f8618192dcc683e79ff4092692952957ba59b6fbd0d426` |
 | reproduced by | Hasan (WS1), Windows |
 | reproduced by | Baki (WS4), Python 3.11.9, scikit-learn 1.9.1, 14 November |
 
-Later commits on PR #21 change only documents (this file and the records), so they give the same
-file.
+Later commits change only documents (this file and the records), so they give the same file.
 
 The two machines agree on more than the SHA256:
 
@@ -38,7 +37,7 @@ The two machines agree on more than the SHA256:
 | `submissions/SAHA.csv` SHA256 | `a3348aebc2986463f24e1763cc6ff49f35f8bea7b33268ca92e2fb16d7ea8afe` |
 | reproduced by | Hasan (WS1), Windows, 12 November; Baki (WS4), Windows, Python 3.11.9, 13 November |
 
-It ships only if PR #21 is not merged by 14 November, 18:00 Turkey time (D026–D028).
+It would have shipped had PR #21 not been merged by 14 November, 18:00 Turkey time (D026–D028).
 
 ## Configuration (`configs/pipeline.toml` at `d276615`)
 
@@ -70,8 +69,17 @@ It ships only if PR #21 is not merged by 14 November, 18:00 Turkey time (D026–
 | WS1 `onball` | `3477ae3` | `p_home` where the ball is tracked, from the ball and the players around it: gradient boosting trained on DFL (CC BY 4.0) | WS5's seven DFL matches, held out, below | experiments/20261113_ws1_onball-model.md |
 
 The whistle stays off (D025). The tracking's ball speed channel is not used (D015). The three WS1
-models are files with their manifests in the repository (D020; `shape` a 3 KB JSON). Rebuilt
-from the committed code, `hiddendead`'s pickle came out byte for byte the same.
+models are files with their manifests in the repository (D020; `shape` a 3 KB JSON).
+
+**Rebuilt from the committed code** (14 November, on WS5's DFL data):
+
+- `onball` and `hiddendead`, which train on one thread, came out byte for byte the same.
+- `shape` came out byte for byte the same with the default thread count of the machine that
+  trained it (4). On one thread its coefficients differ slightly, because the linear algebra
+  sums in another order (cosine 0.9997). That moves P(home) by 0.001 on average and by at most
+  0.022 on DFL's frames, and changes 0.13% of its decisions.
+- The pipeline only reads the committed files, so the submission does not depend on any of
+  this.
 
 ## Why this version
 
@@ -157,4 +165,6 @@ No bug fix entered after the freeze.
 
 ## Sign-off
 
-Team leader: TODO (Hasan, when he approves and merges PR #21)
+Team leader: Hasan Cömert (WS1), 14 November 2026. I approve `d276615` as the submission
+(SHA256 `af770330dbc3e5c414f8618192dcc683e79ff4092692952957ba59b6fbd0d426`), reproduced on
+Hasan's and Baki's machines, with PR #21 merged into `main`.
