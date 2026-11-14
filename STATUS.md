@@ -1,6 +1,6 @@
 # Status
 
-Updated **13 November 2026** by WS1. This page says where we are and what is left; WS1 updates
+Updated **14 November 2026** by WS1. This page says where we are and what is left; WS1 updates
 it at every milestone. The plan itself is [TEAM.md](TEAM.md), the rules are
 [CLAUDE.md](CLAUDE.md), the decisions [DECISIONS.md](DECISIONS.md).
 
@@ -24,9 +24,9 @@ it again on the PR merged into `main` before the team leader merges.
 
 ## Where we are
 
-**The fallback is frozen.** `225cae0` on `main` was reproduced byte for byte on two machines on 12
-and 13 November (SHA256 `a3348aeb…`, FINAL_CHOICE.md). It ships unless the version below is
-merged and reproduced in time.
+**The submission is reproduced.** `d276615` on PR #21 gives `submissions/SAHA.csv` with SHA256
+`af770330…` on Hasan's and Baki's machines, with the same seven evidence files
+(FINAL_CHOICE.md). The frozen `225cae0` (`a3348aeb…`) stays the fallback until PR #21 is merged.
 
 **Three models were added after the freeze**, each with a rule fixed before its runs (PR #21):
 
@@ -43,8 +43,8 @@ All three are trained on WS5's seven DFL matches only (CC BY 4.0). Records:
 failed their rules (`experiments/20261113_ws1_learned-bridge.md`,
 `experiments/20261113_ws1_long-window-shape.md`).
 
-**The deadline for model changes is 14 November, 18:00 Turkey time** (D026–D028). By then the
-new version must be merged and reproduced on two machines; otherwise `225cae0` ships.
+**PR #21 must be merged by 14 November, 18:00 Turkey time** (D026–D028); otherwise `225cae0`
+ships. No more model changes.
 
 ## Milestones
 
@@ -53,8 +53,9 @@ new version must be merged and reproduced on two machines; otherwise `225cae0` s
 | 28 – 31 Oct | Phase 0: shared infrastructure | done |
 | 31 Oct – 11 Nov | Phase 1: the packages | done: WS2 #14, WS3 #12 (v2.1), WS4 #7 (v2), WS5's harness |
 | 12 Nov | feature freeze: FINAL_CHOICE.md with its commit hash | done: `225cae0`, reproduced on two machines |
-| 13 Nov | shape model (D026), on-ball model (D027), dead-ball second opinion (D028) | in PR #21 |
-| 14 Nov, 18:00 TR | last model change merged and reproduced on two machines | |
+| 13 Nov | shape model (D026), on-ball model (D027), dead-ball second opinion (D028) | done, in PR #21 |
+| 14 Nov | the submitted version reproduced on two machines | done: `d276615`, `af770330…` |
+| 14 Nov, 18:00 TR | PR #21 merged | |
 | 13 – 15 Nov | technical document; public-repository preparation | draft: `docs/tech/saha_main.md` |
 | 14 Nov | the form link arrives by email | |
 | 16 Nov | submit the form (team leader only) | |
@@ -63,14 +64,11 @@ new version must be merged and reproduced on two machines; otherwise `225cae0` s
 ## Open items
 
 - **Team leader (Hasan):**
-    - Run `python -m saha.pipeline --fresh` on PR #21's last commit and send WS1 the SHA256.
-    - Approve or reject D027 and D028, the second and third changes after the freeze.
-    - Merge PR #21 once Baki has reproduced the SHA256 and FINAL_CHOICE.md names the new version.
+    - Approve PR #21 (or ask Baki, who reproduced it, to approve) and merge it before
+      14 November, 18:00 Turkey time; then sign FINAL_CHOICE.md.
     - Make the repository public before the form; `python -m saha.tools.guard --history` must
       pass first.
     - Submit the form on 16 November.
-- **Baki (WS4):** reproduce the team leader's SHA256 on PR #21's last commit, on a clean
-  checkout.
 - **Alparslan (WS2):**
     - D028 gives a second opinion on WS2's dead calls where the ball is missing; WS2's code is
       unchanged. Read it, and say if anything in it is wrong for WS2's decoder.
@@ -79,9 +77,8 @@ new version must be merged and reproduced on two machines; otherwise `225cae0` s
 - **Everyone:** read your own appendix in `docs/tech/` once more; `python -m saha.tools.techdoc`
   assembles SAHA.md from them.
 - **WS1:**
-    - FINAL_CHOICE.md for the version that ships, with both SHA256 runs.
-    - The SHA256 in `docs/tech/saha_main.md`.
-    - README's top box for the public repository.
+    - README's top box for the public repository, with the SHA256.
+    - SAHA.md assembled from the technical document, once the team leader chooses its length.
 
 ## Reproducing the submission
 

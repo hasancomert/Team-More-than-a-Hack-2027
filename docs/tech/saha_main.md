@@ -201,10 +201,12 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
 **WS2 on held-out SkillCorner matches:** spellF1 0.624 and dead-ball F1 0.899 as delivered;
 0.583 and 0.835 under WS5's hiding.
 
-**Checks on our match** (they chose nothing): 389 possessions, with a mean of 8.5 s and a median
-of 4.4 s; D on 48.3% of graded frames; home share 59.5%. On the public 5 minutes, spellF1 is
-0.503 [0.36–0.65] and macroF1 0.879, with 22 predicted possessions against 17 true ones. The
-public window has too few possessions to say more.
+**Checks on our match** (they chose nothing; identical on two machines): 361 possessions, with a
+mean of 9.7 s and a median of 5.1 s; D on 44.8% of graded frames; home share 59.7%. The second
+opinion covers 55,300 of WS2's 76,664 dead calls and finds 9.7% of them rather alive (about a
+quarter on DFL). On the public 5 minutes, spellF1 is 0.659 [0.49–0.81] and macroF1 0.895, with
+17 predicted possessions against 17 true ones; the frozen version had 0.492. The public window
+has too few possessions to say more.
 
 ## Limitations
 
@@ -243,8 +245,9 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
 
 - **Environment:** Python 3.11, with the pins in `requirements.txt`, `requirements-starter.txt`
   and `requirements-saha.txt` (TEAM.md, Setup).
-- **The submitted file:** SHA256 `TODO` (FINAL_CHOICE.md), reproduced by two team members on
-  their own machines.
+- **The submitted file:** SHA256
+  `af770330dbc3e5c414f8618192dcc683e79ff4092692952957ba59b6fbd0d426` (FINAL_CHOICE.md),
+  reproduced by two team members on their own machines, with the same seven evidence files.
 - **The combiner** works in integers and every evidence file is quantised to 1e-4, so the file
   does not depend on the machine.
 - **The models' arithmetic** (matrix products, `exp`, tree thresholds) can differ in the last

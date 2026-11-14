@@ -3,7 +3,7 @@ date: 2026-11-13
 package: ws1
 name: long-window-shape
 author: Hasan (WS1), Claude Code (code, runs and record)
-commit:
+commit: 480d284
 config: configs/pipeline.toml (unchanged)
 public_spell_f1:
 public_spell_low:

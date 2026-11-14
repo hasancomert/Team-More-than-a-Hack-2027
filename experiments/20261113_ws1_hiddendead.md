@@ -3,15 +3,15 @@ date: 2026-11-13
 package: ws1
 name: hiddendead
 author: Hasan (WS1), Claude Code (code, runs and record)
-commit:
+commit: d276615
 config: configs/pipeline.toml
-public_spell_f1:
-public_spell_low:
-public_spell_high:
-public_macro_f1:
-n_possessions:
-mean_duration_s:
-d_rate:
+public_spell_f1: 0.6588
+public_spell_low: 0.49
+public_spell_high: 0.81
+public_macro_f1: 0.8950
+n_possessions: 361
+mean_duration_s: 9.7
+d_rate: 0.448
 verdict: adopted
 ---
 
@@ -92,10 +92,16 @@ inside the on-ball version; point estimates:
   (checked on one match and seed), and training uses the same rows in the same order, so each
   held-out model is the one tested.
 
-**On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
-only: `saha.hiddendead.build`'s line (how many of WS2's dead calls get a second opinion, and how
-many of those it finds rather alive), the D rate, the match-wide statistics, the new SHA256, then
-reproduced on a second machine.
+**On our match** (checks only; Hasan's and Baki's runs at `d276615` are identical, SHA256
+`af770330…`):
+
+- WS2 calls 76,664 graded frames dead; the second opinion covers 55,300 of them (ball missing,
+  inside play) and finds 9.7% of those rather alive. On DFL it found about a quarter: here the
+  players' movement says that most of WS2's stoppages with the ball missing are real.
+- The D rate falls from 48.3% (frozen version) to 44.8% of graded frames; 361 possessions, mean
+  9.7 s, median 5.1 s; home share 59.7%.
+- The public 5 minutes: spellF1 0.6588 [0.49–0.81], macroF1 0.8950, 17 predicted possessions
+  against 17 true ones. Too few possessions to say more; the window chose nothing.
 
 ## Caveats
 

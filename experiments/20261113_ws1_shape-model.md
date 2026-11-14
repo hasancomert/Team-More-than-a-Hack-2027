@@ -3,7 +3,7 @@ date: 2026-11-13
 package: ws1
 name: shape-model
 author: Hasan (WS1), Claude Code (code, runs and record)
-commit:
+commit: 757ba6b
 config: configs/pipeline.toml
 public_spell_f1:
 public_spell_low:
@@ -120,14 +120,11 @@ The result, held out (mean of 7 matches, alive frames where the ball is hidden):
   adopted here scores 0.4898 on raw labels and 0.5325 on controlled-2s. The frozen version scores
   0.3976 and 0.4325. The new version is ahead on 21 of 21 runs on both label sets.
 
-**On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
-only:
-
-- `saha.shape.build`'s orientation lines, with both halves' margins well above 10 m and no
-  WARNING;
-- coverage and home share;
-- the match-wide statistics;
-- the new SHA256, then reproduced on a second machine.
+**On our match** (checks only). This version was not run alone: the submission at `d276615`
+holds it with D027 and D028 on top, identical on Hasan's and Baki's machines. There
+`saha.shape.build` finds the direction of attack with margins of 35.2 m and 30.0 m (no
+warning), has an opinion on 96.3% of the 64,643 graded frames without the ball, home on 42.7%
+of them.
 
 ## Caveats
 

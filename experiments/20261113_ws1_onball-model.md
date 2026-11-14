@@ -3,7 +3,7 @@ date: 2026-11-13
 package: ws1
 name: onball-model
 author: Hasan (WS1), Claude Code (code, runs and record)
-commit:
+commit: 3477ae3
 config: configs/pipeline.toml
 public_spell_f1:
 public_spell_low:
@@ -145,12 +145,10 @@ and they reproduce it:
 - **The model is robust to missing players:** it loses 0.011 at our level, where the shape
   model lost 0.03 before it was trained with missing players.
 
-**On our match:** to be run by the team leader with `python -m saha.pipeline --fresh`. Checks
-only:
-
-- `saha.onball.build`'s line: its opinion should cover nearly all tracked graded frames;
-- the match-wide statistics;
-- the new SHA256, then reproduced on a second machine.
+**On our match** (checks only). This version was not run alone: the submission at `d276615`
+holds it with D028 on top, identical on Hasan's and Baki's machines. There `saha.onball.build`
+has an opinion on 97.9% of the 94,214 graded frames with the ball, home on 60.4% of them, and
+|p − 0.5| ≥ 0.2 on 88.8%.
 
 ## Caveats
 

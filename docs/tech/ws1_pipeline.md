@@ -204,7 +204,9 @@ python -m saha.pipeline --fresh --data <path>
     - Inputs are read in sorted order.
     - Every seed is fixed.
 - **Checked on two machines.** The SAHA.csv SHA256 matched on two members' machines on 6 and on
-  7 November.
+  7 November, for the frozen version on 12 and 13 November, and for the submitted version
+  (`d276615`, `af770330…`) on Hasan's and Baki's machines on 14 November, with all seven
+  evidence files the same.
 - **CI.** CI runs the tests, the guard and the official evaluation on every pull request.
 
 ## How the team worked with the data
