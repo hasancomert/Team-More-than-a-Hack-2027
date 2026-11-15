@@ -3,6 +3,10 @@
 Team SAHA, More than a Hack 2027 (FC Barcelona – Athletic Club). Code:
 https://github.com/hasancomert/Team-More-than-a-Hack-2027. Submission: `SAHA.csv`.
 
+**Team SAHA:** Hasan Cömert (WS1, team leader), Alparslan Tuğra Şahin (WS2), Osman Eren Başaran
+(WS3), Abdülbaki Bayır (WS4), Seyyid Abdülbaki Bozkurt (WS5). WS stands for work package: each
+member owned one part of the system ("owner" below).
+
 <!-- Assembled into SAHA.md by `python -m saha.tools.techdoc`: this file, then one short appendix
 per package (docs/tech/appendix_summaries.md), each linking to its owner's full section
 (docs/tech/ws*_*.md); `--full` appends the full sections instead. SUBMISSION.md asks for: the

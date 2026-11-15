@@ -6,7 +6,7 @@ wrote them, are in the repository under
 and every experiment, adopted or rejected, has a record under
 [`experiments/`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/tree/main/experiments).
 
-### Appendix A: WS1, data layer, combiner and two learned models (Hasan)
+### Appendix A: WS1, data layer, combiner and two learned models (Hasan Cömert)
 
 - **Data layer** (`saha/common`): one row per video frame. An ATD `frame_id` is frame
   `frame_id − 1` and a Smart Tagging time is frame `round(seconds × 25)`; fed into the official
@@ -25,7 +25,7 @@ and every experiment, adopted or rejected, has a record under
 
 Full section: [`docs/tech/ws1_pipeline.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws1_pipeline.md).
 
-### Appendix B: WS2, the dead ball (Alparslan)
+### Appendix B: WS2, the dead ball (Alparslan Tuğra Şahin)
 
 - **Three parts** decide dead or alive on every graded frame:
     - a classifier trained on 20 SkillCorner matches (MIT), with copies where WS5's hiding
@@ -43,7 +43,7 @@ Full section: [`docs/tech/ws1_pipeline.md`](https://github.com/hasancomert/Team-
 
 Full section: [`docs/tech/ws2_deadball.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws2_deadball.md).
 
-### Appendix C: WS3, possession while the ball is tracked (Osman)
+### Appendix C: WS3, possession while the ball is tracked (Osman Eren Başaran)
 
 - **The line it draws** is CHALLENGE.md's: possession changes only when the opponent gains
   control. A touch without control, a deflection or a lost duel does not count.
@@ -61,7 +61,7 @@ Full section: [`docs/tech/ws2_deadball.md`](https://github.com/hasancomert/Team-
 
 Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws3_visible.md).
 
-### Appendix D: WS4, possession while the ball is missing (Baki)
+### Appendix D: WS4, possession while the ball is missing (Abdülbaki Bayır)
 
 - **A bridge over each gap:** the team at the ball on each side of a gap (touches within 2 s,
   recent ones counting more). Inside the gap, a two-state Markov chain changing team once per
@@ -77,7 +77,7 @@ Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-M
 
 Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws4_occluded.md).
 
-### Appendix E: WS5, external data and independent validation (Seyyid)
+### Appendix E: WS5, external data and independent validation (Seyyid Abdülbaki Bozkurt)
 
 - **The data:** seven DFL/IDSSE matches (CC BY 4.0; Bassek, Weber, Rein and Memmert, 2025),
   with DFL's own ball status and possession on every frame at 25 fps, mapped to D, H and A.
