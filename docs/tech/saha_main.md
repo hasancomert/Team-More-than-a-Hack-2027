@@ -3,6 +3,10 @@
 Team SAHA, More than a Hack 2027 (FC Barcelona – Athletic Club). Code:
 https://github.com/hasancomert/Team-More-than-a-Hack-2027. Submission: `SAHA.csv`.
 
+**Team SAHA:** Hasan Cömert (WS1, team leader), Alparslan Tuğra Şahin (WS2), Osman Eren Başaran
+(WS3), Abdülbaki Bayır (WS4), Seyyid Abdulbaki Bozkurt (WS5). WS stands for work package: each
+member owned one part of the system ("owner" below).
+
 <!-- Assembled into SAHA.md by `python -m saha.tools.techdoc`: this file, then one short appendix
 per package (docs/tech/appendix_summaries.md), each linking to its owner's full section
 (docs/tech/ws*_*.md); `--full` appends the full sections instead. SUBMISSION.md asks for: the
@@ -46,7 +50,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `deadball` | WS2 | dead or alive, from a classifier trained on SkillCorner and an event-gated decoder (stop events, confirmed restarts, kick-offs) | trained and tuned on SkillCorner; final (D022) |
 | `visible` | WS3 | the team in possession while the ball is tracked: touches, with a hand-over only when the new team confirms it | reasoned values; two settings chosen on DFL |
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
-| `shape` | WS1 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
+| `shape` | WS5 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
 | `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
 | `hiddendead` | WS1 | a second opinion on WS2's dead calls where the ball is missing, from the players' movement and the edges of the gap; it replaces WS2's call there and can only soften it | gradient boosting trained on DFL (D028) |
 
@@ -61,7 +65,9 @@ tracking ──► frame table ──► evidence builders ───────
   per step), so the submission is byte-identical on every machine.
 
 **Where the score is lost.** We measured it on the external matches by giving the system the
-truth for one part at a time, and built a model for the largest gap each time.
+truth for one part at a time, and built a model for the largest gap each time. WS5 (Seyyid)
+reached the first conclusion independently, with his own oracle runs: the team, not the dead
+ball, was the bottleneck.
 
 | that part perfect | before the shape model | before the on-ball model | before the dead-ball second opinion |
 |---|---|---|---|
@@ -171,9 +177,9 @@ None of it comes from the provided game.
 | TU Dortmund Whistle Detection Dataset | Kleingarn and Brämer (2024), TUDOdata; CC BY-SA 4.0 | its authors: whistle blasts in RoboCup recordings | test split, 249 blasts | one number, the whistle threshold; not used by the submission (whistle off) |
 
 **DFL's possession labels change on every touch.** CHALLENGE.md counts only controlled
-possession, so we also scored, and trained both WS1 models, on a stricter reading: a possession
-under 2 s between two possessions of the other team is merged into them. Choices are reported on
-both readings.
+possession, so we also scored everything, and trained the two team models, on a stricter
+reading: a possession under 2 s between two possessions of the other team is merged into them.
+Choices are reported on both readings.
 
 ## Results
 
@@ -191,7 +197,7 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
 | **+ dead-ball second opinion: the submitted version** | **0.548** | **0.609** |
 
 - The rows are seed 0.
-- **The three WS1 models were evaluated leaving one match out.** They were fitted on the six
+- **The three learned models were evaluated leaving one match out.** They were fitted on the six
   other matches every time.
 - **Over three degradation seeds:** the frozen version scores 0.398 raw and 0.433 controlled;
   with the shape model, 0.490 and 0.533, ahead on 21 of 21 runs; with the on-ball model too,
@@ -275,7 +281,7 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
 - **No hand labels and no hand corrections.** The only frame numbers in the code are the
   published half boundaries.
 - **The public 5 minutes checked the pipeline and chose nothing.** The packages' values come from
-  football reasoning or from comparisons on external data. WS1's choices after 11 November
+  football reasoning or from comparisons on external data. The choices made after 11 November
   (`nearest`'s scale, the shape model and its training, the on-ball model, the dead-ball second
   opinion) were made with a rule written down before their runs; so were the two models that
   were tested and rejected.

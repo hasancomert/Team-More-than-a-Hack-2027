@@ -61,7 +61,9 @@ seen within 2 s. It is the reference and the fallback.
 
 **`shape`** (D026) says who has the ball while it is missing. It reads the two teams' shape and
 motion, never the ball, and writes `p_home` on the graded frames without a tracked ball, next to
-WS4.
+WS4. Seyyid (WS5) reached the same idea independently: his gradient-boosting model on 52 team
+features raised DFL's spellF1 from 0.394 to 0.470. He then reviewed this logistic version and
+reproduced its result with his own harness.
 
 - **Why.** On WS5's DFL matches, the true team on the frames without the ball alone would raise
   the frozen version's spellF1 by 0.24. No other part of the system loses as much. WS4's bridge

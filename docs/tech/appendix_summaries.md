@@ -6,7 +6,7 @@ wrote them, are in the repository under
 and every experiment, adopted or rejected, has a record under
 [`experiments/`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/tree/main/experiments).
 
-### Appendix A: WS1, data layer, combiner and three learned models (Hasan)
+### Appendix A: WS1, data layer, combiner and two learned models (Hasan Cömert)
 
 - **Data layer** (`saha/common`): one row per video frame. An ATD `frame_id` is frame
   `frame_id − 1` and a Smart Tagging time is frame `round(seconds × 25)`; fed into the official
@@ -16,17 +16,16 @@ and every experiment, adopted or rejected, has a record under
   three-state Viterbi over H, A and D with switching costs of 35 nats. The file is the same on
   every machine.
 - **`nearest`:** the official nearest-player baseline as evidence, at scale 0.5 (chosen on DFL).
-- **Three models, trained on DFL only, each adopted by a rule fixed before its runs:**
-    - `shape` (D026), the team where the ball is missing, from the two teams' shape and motion:
-      0.88 of those frames right, held out;
+- **Two models, trained on DFL only, each adopted by a rule fixed before its runs:**
     - `onball` (D027), the team where the ball is tracked, from the ball and the players around
       it: 0.908 right, held out, against 0.780 for the nearest player;
     - `hiddendead` (D028), a second opinion on WS2's dead calls where the ball is missing: WS2's
       false dead calls on those live frames fall from 21.6% to 5.6%.
+- **Integration** of WS5's `shape` model (D026) into the pipeline, next to WS4 (Appendix E).
 
 Full section: [`docs/tech/ws1_pipeline.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws1_pipeline.md).
 
-### Appendix B: WS2, the dead ball (Alparslan)
+### Appendix B: WS2, the dead ball (Alparslan Tuğra Şahin)
 
 - **Three parts** decide dead or alive on every graded frame:
     - a classifier trained on 20 SkillCorner matches (MIT), with copies where WS5's hiding
@@ -44,7 +43,7 @@ Full section: [`docs/tech/ws1_pipeline.md`](https://github.com/hasancomert/Team-
 
 Full section: [`docs/tech/ws2_deadball.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws2_deadball.md).
 
-### Appendix C: WS3, possession while the ball is tracked (Osman)
+### Appendix C: WS3, possession while the ball is tracked (Osman Eren Başaran)
 
 - **The line it draws** is CHALLENGE.md's: possession changes only when the opponent gains
   control. A touch without control, a deflection or a lost duel does not count.
@@ -62,7 +61,7 @@ Full section: [`docs/tech/ws2_deadball.md`](https://github.com/hasancomert/Team-
 
 Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws3_visible.md).
 
-### Appendix D: WS4, possession while the ball is missing (Baki)
+### Appendix D: WS4, possession while the ball is missing (Abdülbaki Bayır)
 
 - **A bridge over each gap:** the team at the ball on each side of a gap (touches within 2 s,
   recent ones counting more). Inside the gap, a two-state Markov chain changing team once per
@@ -78,7 +77,7 @@ Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-M
 
 Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws4_occluded.md).
 
-### Appendix E: WS5, external data and independent validation (Seyyid)
+### Appendix E: WS5, external data and independent validation (Seyyid Abdulbaki Bozkurt)
 
 - **The data:** seven DFL/IDSSE matches (CC BY 4.0; Bassek, Weber, Rein and Memmert, 2025),
   with DFL's own ball status and possession on every frame at 25 fps, mapped to D, H and A.
@@ -88,9 +87,19 @@ Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-
     - a fresh track slot per person and half.
 - **The harness** runs each package's own builder on the degraded matches, fuses them as the
   pipeline does and scores them with the official scorer unmodified. `nearest`'s scale, WS3's
-  settings and WS1's three models were chosen there; WS2's on SkillCorner.
+  settings and the three learned models were chosen there; WS2's on SkillCorner.
 - **Caveat:** DFL's possession changes on every touch and its dead ball lasts longer, so its
   labels mean less than ours. WS1 therefore also scored everything on a stricter
   "controlled-2s" reading.
+- **`shape`: the team without the ball (D026).** Seyyid's oracle runs showed that the team, not
+  the dead ball, was the bottleneck of the frozen version. From the literature on team shape
+  (PathCRF; Kim et al.) he built a ball-free team model, gradient boosting on 52 team features,
+  that raised DFL's spellF1 from 0.394 to 0.470 (raw) and from 0.427 to 0.529 (controlled-2s),
+  ahead on 7 of 7 matches.
+    - The submitted `shape` is a logistic model of the same idea on 24 team features, which
+      scored higher (0.491) and gets the team right on 0.88 of the frames without the ball,
+      held out.
+    - Seyyid reviewed it and reproduced its result with his own harness: 0.394 → 0.491 raw and
+      0.427 → 0.531 controlled-2s, seed 0, ahead on 7 of 7 matches.
 
 Full section: [`docs/tech/ws5_external.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws5_external.md).
