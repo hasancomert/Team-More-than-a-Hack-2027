@@ -46,7 +46,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `deadball` | WS2 | dead or alive, from a classifier trained on SkillCorner and an event-gated decoder (stop events, confirmed restarts, kick-offs) | trained and tuned on SkillCorner; final (D022) |
 | `visible` | WS3 | the team in possession while the ball is tracked: touches, with a hand-over only when the new team confirms it | reasoned values; two settings chosen on DFL |
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
-| `shape` | WS1, WS5 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
+| `shape` | WS5 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
 | `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
 | `hiddendead` | WS1 | a second opinion on WS2's dead calls where the ball is missing, from the players' movement and the edges of the gap; it replaces WS2's call there and can only soften it | gradient boosting trained on DFL (D028) |
 
@@ -173,9 +173,9 @@ None of it comes from the provided game.
 | TU Dortmund Whistle Detection Dataset | Kleingarn and Brämer (2024), TUDOdata; CC BY-SA 4.0 | its authors: whistle blasts in RoboCup recordings | test split, 249 blasts | one number, the whistle threshold; not used by the submission (whistle off) |
 
 **DFL's possession labels change on every touch.** CHALLENGE.md counts only controlled
-possession, so we also scored, and trained both WS1 models, on a stricter reading: a possession
-under 2 s between two possessions of the other team is merged into them. Choices are reported on
-both readings.
+possession, so we also scored everything, and trained the two team models, on a stricter
+reading: a possession under 2 s between two possessions of the other team is merged into them.
+Choices are reported on both readings.
 
 ## Results
 
@@ -193,7 +193,7 @@ official scorer. "Raw" uses DFL's labels; "controlled" uses the stricter reading
 | **+ dead-ball second opinion: the submitted version** | **0.548** | **0.609** |
 
 - The rows are seed 0.
-- **The three WS1 models were evaluated leaving one match out.** They were fitted on the six
+- **The three learned models were evaluated leaving one match out.** They were fitted on the six
   other matches every time.
 - **Over three degradation seeds:** the frozen version scores 0.398 raw and 0.433 controlled;
   with the shape model, 0.490 and 0.533, ahead on 21 of 21 runs; with the on-ball model too,
@@ -277,7 +277,7 @@ python -m saha.pipeline --fresh --data <path to the data bundle>
 - **No hand labels and no hand corrections.** The only frame numbers in the code are the
   published half boundaries.
 - **The public 5 minutes checked the pipeline and chose nothing.** The packages' values come from
-  football reasoning or from comparisons on external data. WS1's choices after 11 November
+  football reasoning or from comparisons on external data. The choices made after 11 November
   (`nearest`'s scale, the shape model and its training, the on-ball model, the dead-ball second
   opinion) were made with a rule written down before their runs; so were the two models that
   were tested and rejected.
@@ -294,7 +294,7 @@ wrote them, are in the repository under
 and every experiment, adopted or rejected, has a record under
 [`experiments/`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/tree/main/experiments).
 
-### Appendix A: WS1, data layer, combiner and three learned models (Hasan)
+### Appendix A: WS1, data layer, combiner and two learned models (Hasan)
 
 - **Data layer** (`saha/common`): one row per video frame. An ATD `frame_id` is frame
   `frame_id − 1` and a Smart Tagging time is frame `round(seconds × 25)`; fed into the official
@@ -304,14 +304,12 @@ and every experiment, adopted or rejected, has a record under
   three-state Viterbi over H, A and D with switching costs of 35 nats. The file is the same on
   every machine.
 - **`nearest`:** the official nearest-player baseline as evidence, at scale 0.5 (chosen on DFL).
-- **Three models, trained on DFL only, each adopted by a rule fixed before its runs:**
-    - `shape` (D026), the team where the ball is missing, from the two teams' shape and motion:
-      0.88 of those frames right, held out. Seyyid (WS5) reached the same idea independently
-      (Appendix E);
+- **Two models, trained on DFL only, each adopted by a rule fixed before its runs:**
     - `onball` (D027), the team where the ball is tracked, from the ball and the players around
       it: 0.908 right, held out, against 0.780 for the nearest player;
     - `hiddendead` (D028), a second opinion on WS2's dead calls where the ball is missing: WS2's
       false dead calls on those live frames fall from 21.6% to 5.6%.
+- **Integration** of WS5's `shape` model (D026) into the pipeline, next to WS4 (Appendix E).
 
 Full section: [`docs/tech/ws1_pipeline.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws1_pipeline.md).
 
@@ -377,17 +375,19 @@ Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-
     - a fresh track slot per person and half.
 - **The harness** runs each package's own builder on the degraded matches, fuses them as the
   pipeline does and scores them with the official scorer unmodified. `nearest`'s scale, WS3's
-  settings and WS1's three models were chosen there; WS2's on SkillCorner.
+  settings and the three learned models were chosen there; WS2's on SkillCorner.
 - **Caveat:** DFL's possession changes on every touch and its dead ball lasts longer, so its
   labels mean less than ours. WS1 therefore also scored everything on a stricter
   "controlled-2s" reading.
-- **The team without the ball.** Seyyid's oracle runs showed that the team, not the dead ball,
-  was the bottleneck of the frozen version. From the literature on team shape (PathCRF; Kim et
-  al.) he built a ball-free team model of his own, gradient boosting on 52 team features, that
-  raised DFL's spellF1 from 0.394 to 0.470 (raw) and from 0.427 to 0.529 (controlled-2s), ahead
-  on 7 of 7 matches. It reached the same idea as WS1's `shape` model in parallel. The logistic
-  version scored higher (0.491) and was kept. Seyyid then reviewed it and reproduced its result
-  with his own harness: 0.394 → 0.491 raw and 0.427 → 0.531 controlled-2s, seed 0, ahead on 7
-  of 7 matches.
+- **`shape`: the team without the ball (D026).** Seyyid's oracle runs showed that the team, not
+  the dead ball, was the bottleneck of the frozen version. From the literature on team shape
+  (PathCRF; Kim et al.) he built a ball-free team model, gradient boosting on 52 team features,
+  that raised DFL's spellF1 from 0.394 to 0.470 (raw) and from 0.427 to 0.529 (controlled-2s),
+  ahead on 7 of 7 matches.
+    - The submitted `shape` is a logistic model of the same idea on 24 team features, which
+      scored higher (0.491) and gets the team right on 0.88 of the frames without the ball,
+      held out.
+    - Seyyid reviewed it and reproduced its result with his own harness: 0.394 → 0.491 raw and
+      0.427 → 0.531 controlled-2s, seed 0, ahead on 7 of 7 matches.
 
 Full section: [`docs/tech/ws5_external.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws5_external.md).
