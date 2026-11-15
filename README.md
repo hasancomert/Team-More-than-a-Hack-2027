@@ -7,7 +7,10 @@
 > python -m saha.pipeline --data <path-to-data-bundle>   # -> submissions/SAHA.csv, validated
 > ```
 >
-> Submission SHA256: *recorded here at submission time.* Everything below this box is the
+> **Submission:** `submissions/SAHA.csv` from commit `d276615`, SHA256
+> `af770330dbc3e5c414f8618192dcc683e79ff4092692952957ba59b6fbd0d426`, reproduced on two machines
+> ([FINAL_CHOICE.md](FINAL_CHOICE.md)). **Technical document:** [SAHA.md](SAHA.md), assembled by
+> `python -m saha.tools.techdoc` from [docs/tech/](docs/tech/). Everything below this box is the
 > organisers' README, unchanged.
 
 # More than a Hack 2027 — Phase 1: Ball Possession
