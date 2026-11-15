@@ -46,7 +46,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `deadball` | WS2 | dead or alive, from a classifier trained on SkillCorner and an event-gated decoder (stop events, confirmed restarts, kick-offs) | trained and tuned on SkillCorner; final (D022) |
 | `visible` | WS3 | the team in possession while the ball is tracked: touches, with a hand-over only when the new team confirms it | reasoned values; two settings chosen on DFL |
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
-| `shape` | WS1 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
+| `shape` | WS1, WS5 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
 | `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
 | `hiddendead` | WS1 | a second opinion on WS2's dead calls where the ball is missing, from the players' movement and the edges of the gap; it replaces WS2's call there and can only soften it | gradient boosting trained on DFL (D028) |
 
@@ -61,7 +61,9 @@ tracking ──► frame table ──► evidence builders ───────
   per step), so the submission is byte-identical on every machine.
 
 **Where the score is lost.** We measured it on the external matches by giving the system the
-truth for one part at a time, and built a model for the largest gap each time.
+truth for one part at a time, and built a model for the largest gap each time. WS5 (Seyyid)
+reached the first conclusion independently, with his own oracle runs: the team, not the dead
+ball, was the bottleneck.
 
 | that part perfect | before the shape model | before the on-ball model | before the dead-ball second opinion |
 |---|---|---|---|

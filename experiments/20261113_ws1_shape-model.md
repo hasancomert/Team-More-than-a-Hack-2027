@@ -2,7 +2,7 @@
 date: 2026-11-13
 package: ws1
 name: shape-model
-author: Hasan (WS1), Claude Code (code, runs and record)
+author: Hasan (WS1), Claude Code (code, runs and record); Seyyid (WS5, the same idea in parallel, review and independent reproduction)
 commit: 757ba6b
 config: configs/pipeline.toml
 public_spell_f1:

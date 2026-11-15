@@ -46,7 +46,7 @@ tracking ──► frame table ──► evidence builders ───────
 | `deadball` | WS2 | dead or alive, from a classifier trained on SkillCorner and an event-gated decoder (stop events, confirmed restarts, kick-offs) | trained and tuned on SkillCorner; final (D022) |
 | `visible` | WS3 | the team in possession while the ball is tracked: touches, with a hand-over only when the new team confirms it | reasoned values; two settings chosen on DFL |
 | `occluded` | WS4 | a bridge across each gap in the ball's tracking, and Smart Tagging phases whose side comes from their official definitions | reasoned values; checked on DFL |
-| `shape` | WS1 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
+| `shape` | WS1, WS5 | the team in possession while the ball is missing, from the two teams' shape and motion | logistic model trained on DFL (D026) |
 | `onball` | WS1 | the team in possession while the ball is tracked, from the ball and the players around it, with the teams' shape as context | gradient boosting trained on DFL (D027) |
 | `hiddendead` | WS1 | a second opinion on WS2's dead calls where the ball is missing, from the players' movement and the edges of the gap; it replaces WS2's call there and can only soften it | gradient boosting trained on DFL (D028) |
 
@@ -61,7 +61,9 @@ tracking ──► frame table ──► evidence builders ───────
   per step), so the submission is byte-identical on every machine.
 
 **Where the score is lost.** We measured it on the external matches by giving the system the
-truth for one part at a time, and built a model for the largest gap each time.
+truth for one part at a time, and built a model for the largest gap each time. WS5 (Seyyid)
+reached the first conclusion independently, with his own oracle runs: the team, not the dead
+ball, was the bottleneck.
 
 | that part perfect | before the shape model | before the on-ball model | before the dead-ball second opinion |
 |---|---|---|---|
@@ -304,7 +306,8 @@ and every experiment, adopted or rejected, has a record under
 - **`nearest`:** the official nearest-player baseline as evidence, at scale 0.5 (chosen on DFL).
 - **Three models, trained on DFL only, each adopted by a rule fixed before its runs:**
     - `shape` (D026), the team where the ball is missing, from the two teams' shape and motion:
-      0.88 of those frames right, held out;
+      0.88 of those frames right, held out. Seyyid (WS5) reached the same idea independently
+      (Appendix E);
     - `onball` (D027), the team where the ball is tracked, from the ball and the players around
       it: 0.908 right, held out, against 0.780 for the nearest player;
     - `hiddendead` (D028), a second opinion on WS2's dead calls where the ball is missing: WS2's
@@ -378,5 +381,13 @@ Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-
 - **Caveat:** DFL's possession changes on every touch and its dead ball lasts longer, so its
   labels mean less than ours. WS1 therefore also scored everything on a stricter
   "controlled-2s" reading.
+- **The team without the ball.** Seyyid's oracle runs showed that the team, not the dead ball,
+  was the bottleneck of the frozen version. From the literature on team shape (PathCRF; Kim et
+  al.) he built a ball-free team model of his own, gradient boosting on 52 team features, that
+  raised DFL's spellF1 from 0.394 to 0.470 (raw) and from 0.427 to 0.529 (controlled-2s), ahead
+  on 7 of 7 matches. It reached the same idea as WS1's `shape` model in parallel. The logistic
+  version scored higher (0.491) and was kept. Seyyid then reviewed it and reproduced its result
+  with his own harness: 0.394 → 0.491 raw and 0.427 → 0.531 controlled-2s, seed 0, ahead on 7
+  of 7 matches.
 
 Full section: [`docs/tech/ws5_external.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws5_external.md).
