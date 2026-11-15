@@ -4,7 +4,7 @@ Team SAHA, More than a Hack 2027 (FC Barcelona – Athletic Club). Code:
 https://github.com/hasancomert/Team-More-than-a-Hack-2027. Submission: `SAHA.csv`.
 
 **Team SAHA:** Hasan Cömert (WS1, team leader), Alparslan Tuğra Şahin (WS2), Osman Eren Başaran
-(WS3), Abdülbaki Bayır (WS4), Seyyid Abdülbaki Bozkurt (WS5). WS stands for work package: each
+(WS3), Abdülbaki Bayır (WS4), Seyyid Abdulbaki Bozkurt (WS5). WS stands for work package: each
 member owned one part of the system ("owner" below).
 
 <!-- Assembled into SAHA.md by `python -m saha.tools.techdoc`: this file, then one short appendix
@@ -369,7 +369,7 @@ Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-M
 
 Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws4_occluded.md).
 
-### Appendix E: WS5, external data and independent validation (Seyyid Abdülbaki Bozkurt)
+### Appendix E: WS5, external data and independent validation (Seyyid Abdulbaki Bozkurt)
 
 - **The data:** seven DFL/IDSSE matches (CC BY 4.0; Bassek, Weber, Rein and Memmert, 2025),
   with DFL's own ball status and possession on every frame at 25 fps, mapped to D, H and A.

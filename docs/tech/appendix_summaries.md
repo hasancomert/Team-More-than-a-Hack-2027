@@ -77,7 +77,7 @@ Full section: [`docs/tech/ws3_visible.md`](https://github.com/hasancomert/Team-M
 
 Full section: [`docs/tech/ws4_occluded.md`](https://github.com/hasancomert/Team-More-than-a-Hack-2027/blob/main/docs/tech/ws4_occluded.md).
 
-### Appendix E: WS5, external data and independent validation (Seyyid Abdülbaki Bozkurt)
+### Appendix E: WS5, external data and independent validation (Seyyid Abdulbaki Bozkurt)
 
 - **The data:** seven DFL/IDSSE matches (CC BY 4.0; Bassek, Weber, Rein and Memmert, 2025),
   with DFL's own ball status and possession on every frame at 25 fps, mapped to D, H and A.
